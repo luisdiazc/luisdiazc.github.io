@@ -1,0 +1,968 @@
+---
+title: Generalidades de R
+author: Msc. Luis Díaz Chávez
+date: '2022-04-23'
+slug: generalidades-de-r
+categories: ["R"]
+tags:
+  - R
+  - Data Science
+  - Statistic
+subtitle: ''
+summary: ''
+authors: []
+lastmod: '2022-04-23T12:15:39-05:00'
+featured: no
+image:
+  caption: ''
+  focal_point: ''
+  preview_only: no
+projects: []
+---
+
+
+
+<div id="introducción" class="section level1">
+<h1>Introducción</h1>
+<p>R es un Lenguaje de programación orientado a objetos para la manipulación y análisis estadístico de datos con gran aceptación en la comunidad científica. Su filosofía de software libre y de código abierto consolidan su gran popularidad y aceptación, además de la cada vez más creciente comunidad que que permanentemente trabaja para ampliar las potencialidades de este entorno computacional a través del dessarollo de librerías (paquetes). Lo anterior, ha posibilitado el tratamiento de datos geográficos en R, que si bien son datos susceptibles de análisis, la existencia de un componente espacial (ubicación en el espacio) hacen complejo su tratamiento. Sin embargo, gracias a la disponibilidad de librerías de R destinadas al tratamiento específico de este tipo de datos, han logrado integrarse con éxito en los flujos de trabajo.</p>
+<p>R se distribuye de manera gratuita para diferentes plataformas y diferentes arquitecturas de sistemas operativos, las cuales pueden ser accedidas desde la página web de este proyecto (<a href="https://www.r-project.org/" class="uri">https://www.r-project.org/</a>). Una panorámica general de este portal se muestra en la Figura 1).</p>
+<img src="R-project.png" width="80%" style="display: block; margin: auto;" />
+<p align="center">
+Figura 1.Página oficial de R project.
+</p>
+<p>Una vez descargado e instalado R en nuestro ordenador es posible iniciar cualquier flujo de trabajo para el tratamiento de datos. No obstante, la interfaz nativa de R es demasiado “plana”, haciendola poco amigable para personas con poca experiencia en progamación o totalmente neófitos. Por esta razón, se han popularizado diversos entornos de desarrollo o IDE’s (por sus siglas en inglés), entre los que destaca R-Studio, el cual mediante el uso de colores para la distinción de funciones, argumentos y comentarios facilita la lectura de código, sumado a las invaluables ayudas de autocompletado de nombre de funciones (haciendo inecesario la memorización de las mismas), cierre automatico de símbolos de agrupación y comillas e indexación minimizan la comisión de errores de sintaxis. R-Studio puede descargarse, gratuitamente, desde su página oficial (<a href="https://www.rstudio.com/" class="uri">https://www.rstudio.com/</a>). De forma general, esta página se ve como se ilustra en la Figura 2.</p>
+<img src="R-Studio.png" width="80%" style="display: block; margin: auto;" />
+<p align="center">
+Figura 2.Página oficial de R-Studio.
+</p>
+<div id="tipos-de-datos-en-r" class="section level2">
+<h2>Tipos de datos en R</h2>
+<p>La instalación de R base, reconoce diferentes tipologías de datos en función de su naturaleza. Un resumen de estos se muestra en la siguiente Tabla 1.</p>
+<p>Tabla. Tipo de datos en R.</p>
+<div id="qnsmbvezid" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#qnsmbvezid .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: 100%;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#qnsmbvezid .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#qnsmbvezid .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#qnsmbvezid .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#qnsmbvezid .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#qnsmbvezid .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#qnsmbvezid .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#qnsmbvezid .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#qnsmbvezid .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#qnsmbvezid .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#qnsmbvezid .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#qnsmbvezid .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#qnsmbvezid .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#qnsmbvezid .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#qnsmbvezid .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#qnsmbvezid .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#qnsmbvezid .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#qnsmbvezid .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#qnsmbvezid .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#qnsmbvezid .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#qnsmbvezid .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#qnsmbvezid .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#qnsmbvezid .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#qnsmbvezid .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#qnsmbvezid .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#qnsmbvezid .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#qnsmbvezid .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#qnsmbvezid .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#qnsmbvezid .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#qnsmbvezid .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#qnsmbvezid .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#qnsmbvezid .gt_left {
+  text-align: left;
+}
+
+#qnsmbvezid .gt_center {
+  text-align: center;
+}
+
+#qnsmbvezid .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#qnsmbvezid .gt_font_normal {
+  font-weight: normal;
+}
+
+#qnsmbvezid .gt_font_bold {
+  font-weight: bold;
+}
+
+#qnsmbvezid .gt_font_italic {
+  font-style: italic;
+}
+
+#qnsmbvezid .gt_super {
+  font-size: 65%;
+}
+
+#qnsmbvezid .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#qnsmbvezid .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#qnsmbvezid .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#qnsmbvezid .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#qnsmbvezid .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#qnsmbvezid .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Type</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Example</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_center">Integer</td>
+<td class="gt_row gt_center">1</td></tr>
+    <tr><td class="gt_row gt_center">Numeric</td>
+<td class="gt_row gt_center">1.3</td></tr>
+    <tr><td class="gt_row gt_center">Character</td>
+<td class="gt_row gt_center">Uno</td></tr>
+    <tr><td class="gt_row gt_center">Factor</td>
+<td class="gt_row gt_center">Uno</td></tr>
+    <tr><td class="gt_row gt_center">Logical</td>
+<td class="gt_row gt_center">TRUE</td></tr>
+    <tr><td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">Null</td>
+<td class="gt_row gt_center">NULL</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p>Sin embargo, existen muchas otras tipologías de datos introducidas por otras estructuras de datos hacia las cuales se han expandido las funcionalidades de R a través de paquetes. A lo largo de este curso revisaremos algunas tipologías de datos asociados a un componente geográfico.</p>
+</div>
+<div id="estructuras-de-datos-en-r" class="section level2">
+<h2>Estructuras de datos en R</h2>
+<p>De forma generica, las estructuras de datos en R son objetos que almacenan datos en cualquiera de sus tipologías. En este sentido, cuando ejecutamos un flujo de trabajo en R, lo que inherentemente estamos haciendo es manipular algunas de las estructuras que este entorno soporta.</p>
+<p>Las estructuras de datos tienen diferentes características. Entre ellas, las que distinguen a una estructura de otra son su número de <strong>dimensiones</strong> y si son <strong>homogeneas</strong> o <strong>hereterogeneas</strong> (Tabla 2).</p>
+<p>Table 2. Estructuras de datos en R.</p>
+<div id="bttezvfhzz" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#bttezvfhzz .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: 100%;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#bttezvfhzz .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#bttezvfhzz .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#bttezvfhzz .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#bttezvfhzz .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#bttezvfhzz .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#bttezvfhzz .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#bttezvfhzz .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#bttezvfhzz .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#bttezvfhzz .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#bttezvfhzz .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#bttezvfhzz .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#bttezvfhzz .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#bttezvfhzz .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#bttezvfhzz .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#bttezvfhzz .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#bttezvfhzz .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#bttezvfhzz .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#bttezvfhzz .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#bttezvfhzz .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#bttezvfhzz .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#bttezvfhzz .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#bttezvfhzz .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#bttezvfhzz .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#bttezvfhzz .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#bttezvfhzz .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#bttezvfhzz .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#bttezvfhzz .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#bttezvfhzz .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#bttezvfhzz .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#bttezvfhzz .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#bttezvfhzz .gt_left {
+  text-align: left;
+}
+
+#bttezvfhzz .gt_center {
+  text-align: center;
+}
+
+#bttezvfhzz .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#bttezvfhzz .gt_font_normal {
+  font-weight: normal;
+}
+
+#bttezvfhzz .gt_font_bold {
+  font-weight: bold;
+}
+
+#bttezvfhzz .gt_font_italic {
+  font-style: italic;
+}
+
+#bttezvfhzz .gt_super {
+  font-size: 65%;
+}
+
+#bttezvfhzz .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#bttezvfhzz .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#bttezvfhzz .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#bttezvfhzz .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#bttezvfhzz .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#bttezvfhzz .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Dimensiones</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Homogeneas</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Heterogeneas</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">Vector</td>
+<td class="gt_row gt_center">Listas</td></tr>
+    <tr><td class="gt_row gt_center">2</td>
+<td class="gt_row gt_center">Matriz</td>
+<td class="gt_row gt_center">Data frame</td></tr>
+    <tr><td class="gt_row gt_center">n</td>
+<td class="gt_row gt_center">Array</td>
+<td class="gt_row gt_center"></td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p>A continuación, haremos una explicación resumida de cada una de estas estructuras y la forma en que estos son construídos de manera mecánica en R.</p>
+<div id="vectores" class="section level3">
+<h3>Vectores</h3>
+<p>Los vectores son la estructura de datos más sencilla para trabajar dentro de R. De forma general, se definen como una colección de datos de una misma tipología y, pueden ser útiles para almacenar los valores que asume una variable unitaria.</p>
+<p>Los vectores poseen dos (2) características fundamentales: (1) <strong>Tipo</strong>, que informa la tipología de datos contenida dentro de un vector; (2) <strong>Longitud</strong>, que representa el número de elementos que almecena un vector.</p>
+<p>Dentro de R, la creación de vectores se realiza con la función de concatenación <code>c()</code> proporcionada por la configuración de instalación base de R. Observemos como se construyen vectores de diferentes tipologías:</p>
+<pre class="r"><code>Numeric &lt;- c(1, 2, 3, 4 , 5)
+
+Character &lt;- c(&quot;María&quot;, &quot;José&quot;, &quot;Érika&quot;, &quot;Carlos&quot;, &quot;Juan&quot;)
+
+Sequence &lt;- seq(from = 1, to = 10, by = 2)
+
+Factor &lt;- factor(x = c(1, 2, 3, 4, 5), levels = c(&quot;Rosas&quot;, &quot;Girasoles&quot;, &quot;Orquideas&quot;, &quot;Margaritas&quot;, &quot;Tulipanes&quot;))
+
+Logical &lt;- c(TRUE, FALSE, FALSE, TRUE, FALSE)</code></pre>
+</div>
+<div id="matrices" class="section level3">
+<h3>Matrices</h3>
+<p>Diferentes fuentes coinciden en describir a las matrices como vectores bidimensionales, es decir, colecciones de datos de un mismo tipo que además de la longitud, poseen un ancho, originando de esta forma un arreglo rectangular de almacenamiento que posee filas y columnas, común en la manipulación de datos en R.</p>
+<p>La creación de estas estructuras en R se hace a través de la función <code>matrix()</code>, ingresando dentro de ésta, algunos argumentos que permiten dar el formato deseado a la matriz resultante.</p>
+<pre class="r"><code>Matriz1 &lt;- matrix(data = c(1, 2, 3, 4, 5, 6, 7, 8, 9), nrow = 3, ncol = 3, byrow = FALSE, 
+                  dimnames = list(1:3, c(&quot;V1&quot;, &quot;V2&quot;, &quot;V3&quot;)))
+
+Matriz2 &lt;- matrix(data = c(LETTERS[1:5], letters[1:5]), nrow = 5, ncol = 2, byrow = FALSE, 
+                  dimnames = list(1:5, c(&quot;Mayúsculas&quot;, &quot;Minúsculas&quot;)))</code></pre>
+</div>
+<div id="data-frame" class="section level3">
+<h3>Data frame</h3>
+<p>Los data frames son estructuras de datos de dos dimensiones (rectangulares) que pueden contener datos de diferentes tipos, por lo tanto, son heterogéneas. Esta estructura de datos es la más usada para realizar análisis de datos y seguramente les resultará familiar si han trabajado con otros paquetes para la manipulación de datos.</p>
+<p>Podemos entender a los data frames como una versión más flexible de una matriz. Mientras que en una matriz todas las celdas deben contener datos del mismo tipo, los renglones de un data frame admiten datos de distintos tipos, pero sus columnas conservan la restricción de contener datos de un sólo tipo.</p>
+<p>En términos generales, los renglones en un data frame representan casos, individuos u observaciones, mientras que las columnas representan atributos, rasgos o variables.</p>
+<p>La creación de data frame en R se realiza mediante la función <code>data.frame()</code>, como se muestra a continuación.</p>
+</div>
+<div id="listas" class="section level3">
+<h3>Listas</h3>
+<p>Las listas, al igual que los vectores, son estructuras de datos unidimensionales, sólo tienen largo, pero a diferencia de los vectores cada uno de sus elementos puede ser de diferente tipo o incluso de diferente clase, por lo que son estructuras heterogéneas.</p>
+<p>Podemos tener listas que contengan datos atómicos, vectores, matrices, arrays, data frames u otras listas. Esta última característica es la razón por la que una lista puede ser considerada un vector recursivo, pues es un objeto que puede contener objetos de su misma clase.</p>
+<p>Para su contrucción, R proporciona la función <code>list()</code>.</p>
+<pre class="r"><code>MiLista &lt;- list(Vector = c(&quot;A&quot;, &quot;E&quot;, &quot;I&quot;, &quot;O&quot;, &quot;U&quot;),
+                Matriz = Matriz2,
+                DataFrame = DataFrame)</code></pre>
+</div>
+</div>
+</div>

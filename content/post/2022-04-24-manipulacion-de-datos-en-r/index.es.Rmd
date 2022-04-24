@@ -1,0 +1,250 @@
+---
+title: Manipulación de datos en R
+author: Msc. Luis Díaz Chávez
+date: '2022-04-24'
+slug: manipulacion-de-datos-en-r
+categories:
+  - R
+tags:
+  - Data Science
+  - R
+  - Statistic
+subtitle: ''
+summary: ''
+authors: []
+lastmod: '2022-04-24T01:54:50-05:00'
+featured: no
+image:
+  caption: ''
+  focal_point: ''
+  preview_only: no
+projects: []
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(gt)
+library(kableExtra)
+```
+
+# Introducción
+
+Las funciones proporcionadas por el paquete base de instalación de R ofrece herramientas para la manipulación y exploración de datos, desde las cuales se hace posible la extracción de subconjuntos de datos mediante indexación, renombrar variables e incluso generar resumenes de datos. No obstante, durante este curso estaremos trabajando con las funciones de manipulación de datos proporcionadas por el cúmulo de paquetes que hacen parte del meta-paquete **tidyverse**; la elección de estas funciones sobre las de base, se debe a que la sintaxis de estas se enmarcan en el uso de algunos verbos que facilitan su aprendizaje y entendimiento de los bloques de código que se construyan, además, la posibilidad de usar el pipeline `%>%`, una expresión que permite concatenar líneas de código, mejorando sustancialmente su legibilidad y reduciendo la creación de objetos intermedios. A lo largo de la exposición de ejemplos en esta sección se brindarán más detalles de las funciones utilizadas.
+
+En relación a la manipulación de datos, si bien es posible digitar los datos directamente en el entorno de R, lo habitual es contar con algún archivo externo en donde se encuentren almacenados nuestros datos, por ejemplo, archivos planos (_.txt_, _.csv_), hojas de cálculo (_.xlx_, _.xlsx_), bases de datos construidas en otros software's de tratamiento de datos (STATA, SPSS), e inclusos, datos almacenados en motores de bases de datos relacionales (SQL, Access). R ofrece la posibilidad de importar estos datos hacia su entorno respetando la lectura como datos _Tidy_, es decir, en los que cada fila de una tabla corresponda con una observación, cada columna a una variable y cada celda al valor de una variable en una observación particular (Figura 1).
+
+```{r DatosTidy, out.width = '100%', fig.align = 'center', echo = FALSE}
+knitr::include_graphics("Datos tidy.svg")
+```
+<p align = "center">Figura 1. Modelo de tabulación de datos ordenados (tidy).</p>
+
+En los siguientes apartados, mostraremos el flujo de acciones a seguir en la exploración de datos; desde la lectura/importación de datos a R, hasta la generación de resumenes de casos para dar respuestas a preguntas sobre los datos o satisfaccer necesidades de información sobre los mismos.
+
+# Lectura de datos: importación de archicos _csv_
+
+A tenor de la coyuntura actual de emergencia sanitaría suscitada por la pandemia de la Covid 19, mostraremos como ejemplo de importación de datos, las cifras de contagio descargadas desde el portal de datos abiertos del Instituto Nacional de Salud (INS) de la República de Colombia, los cuales fueron descargados en formato _.csv_, con fecha de corte al 03 de abril de 2022 (Tabla 1). Esta base de datos se importará al entorno de R mediante la función `read_csv` del paquete **tidy**. Por razones de memoria, solo imprimirá los primeros 1000 registros (observaciones), aunque los análisis subsiguientes se realizaran con el set completo de datos.
+
+```{r ImportarDatos, echo = TRUE, results = 'asis'}
+
+# install.packages(pkgs = "tidyverse", dependencies = TRUE)
+
+library(tidyverse)
+
+covid19 <- read_csv(file = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/Casos positivos COVID-19 Colombia.csv", col_names = TRUE)
+
+```
+
+Tabla 1. Casos de contagio de Covid19 en Colombia.
+```{r Covid19, echo = FALSE}
+
+gt(data = covid19[1:1000,]) %>% 
+  tab_options(table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold", container.height = px(x = 500), container.overflow.y = TRUE) %>% 
+  cols_align(align = "center")
+
+```
+
+# Manipulación de datos: funciones del paquete dplyr
+
+En lo que respecta a la manipulación de datos, como se mencionó antes, los paquetes pertenecientes al **tidyverse** siguen un flujo de trabajo que facilita su aprendizaje. Para ilustrarlo, a continuación mostraremos la forma de trabajar con los seis (6) verbos principales del paquete **dplyr**.
+
+- `filter()`, genera un subconjunto de las observaciones en función de sus valores.
+- `select()`, permite realizar la selección de variables del set de datos.
+- `mutate()`, Crea nuevas variables como transformaciones de las variables existentes.
+- `summarise()`, contrae muchos valores en un solo resumen.
+- `group_by()`, cambia el alcance de cada función anterior para que actúe ya no sobre todo el conjunto de datos sino de grupo en grupo.
+- `arrange()`, reordena las filas de forma ascendente o descendente.
+
+Iniciaremos la ejemplificación de cada de una de estas funciones respondiendo preguntas sobre el set de datos y enlazando cada función usada con el pipe ` %>% `. En principio, usaremos la función `filter()` para generar un subconjunto de los datos que incluya, solamente, los registros de contagio de Covid19 en el departamento de La Guajira (Tabla 2).
+
+```{r tidyverse}
+
+covid19_guajira <- covid19 %>% 
+  filter(`Nombre departamento` == "GUAJIRA")
+
+```
+
+Tabla 2. Registros de contagio de Covid-19 en el departamento de La Guajira.
+```{r CovidGuajira, echo = FALSE, results = 'asis'}
+
+gt(data = covid19_guajira[1:1000,]) %>% 
+  tab_options(table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold", container.height = px(x = 500), container.overflow.y = TRUE) %>% 
+  cols_align(align = "center")
+
+```
+
+<br>
+Ahora, seleccionaremos las variables que serán de interés dentro de nuestro análisis usando la función `select()` (Tabla 3).
+
+```{r}
+
+covid19_guajira <- covid19 %>% 
+  filter(`Nombre departamento` == "GUAJIRA") %>% 
+  select(`fecha reporte web`, `Nombre departamento`, `Nombre municipio`, Edad, Sexo, Estado)
+
+```
+
+Tabla 3. Registros de contagio de Covid-19 en el departamento de La Guajira para variables de interés.
+```{r CovidGuajira1, echo = FALSE, results = 'asis'}
+
+gt(data = covid19_guajira[1:1000,]) %>% 
+  tab_options(table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold", container.height = px(x = 500), container.overflow.y = TRUE) %>% 
+  cols_align(align = "center")
+
+```
+
+<br>
+Como siguiente paso,  con la función `mutate()` transformaremos la variable _fecha reporte web_ en formato fecha usando la función `ymd()` del paquete **lubridate** y separaremos el mes y año correspondiente con las funciones `month()` y `year()` del mismo paquete (Tabla 4).
+
+```{r, warning = FALSE}
+
+# install.packages(pkgs = "lubridate", dependencies = TRUE)
+
+library(lubridate)
+
+covid19_guajira <- covid19 %>% 
+  filter(`Nombre departamento` == "GUAJIRA") %>% 
+  select(`fecha reporte web`, `Nombre departamento`, `Nombre municipio`, Edad, Sexo, Estado) %>% 
+  mutate(`fecha reporte web` = ymd(`fecha reporte web`), Mes = month(`fecha reporte web`, label = TRUE), Año = year(`fecha reporte web`))
+
+```
+
+Tabla 4. Registros de contagio de Covid-19 en el departamento de La Guajira con nuevas variables.
+```{r Covid19Guajira2, echo = FALSE, results = 'asis'}
+
+gt(data = covid19_guajira[1:1000,]) %>% 
+  tab_options(table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold", container.height = px(x = 500), container.overflow.y = TRUE) %>% 
+  cols_align(align = "center")
+
+```
+
+<br>
+Luego, realizaremos un conteo de casos reportados de covid19 agrupados por mes, año de contagio y el municipio donde se presentó. Para ello, usaremos las funciones `group_by()` y `summarise()`. Así mismo, lo ordenaremos cronológicamente con la función `arrange()` (Tabla 5).
+
+```{r}
+
+covid19_guajira <- covid19 %>% 
+  filter(`Nombre departamento` == "GUAJIRA") %>% 
+  select(`fecha reporte web`, `Nombre departamento`, `Nombre municipio`, Edad, Sexo, Estado) %>% 
+  mutate(`fecha reporte web` = ymd(`fecha reporte web`), Mes = month(`fecha reporte web`, label = TRUE), Año = year(`fecha reporte web`)) %>% 
+  group_by(Mes, Año, `Nombre municipio`) %>% 
+  summarise(`No. de casos` = n()) %>% 
+  ungroup() %>% 
+  arrange(Año)
+
+```
+
+Tabla 5. Registros de contagio de Covid-19 en el departamento de La Guajira por mes, año y municipio.
+```{r Covid19Guajira3, echo = FALSE, results = 'asis'}
+
+gt(data = covid19_guajira) %>% 
+  tab_options(table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold", container.height = px(x = 500), container.overflow.y = TRUE) %>% 
+  cols_align(align = "center")
+
+```
+
+<br>
+De esta forma hemos realizado fácilmente un resumen de las cifras de contagio de Covid-19 en el departamento de La Guajira, haciendo uso de pocas líneas de código. El espectro de posibilidades para la manipulación de datos es amplio y dependerá de las preguntas que en cada caso se desean responder a fines de generar información y mejorar los procesos de toma de decisión basado en datos.
+
+# Resumenes de caso: cómputo de estadísticas de descriptivas 
+
+Anteriormente, se ilustró el uso de la función `summarise()` para la obtención de contagios totales de Covid 19 por municipio en el departamento de La Guajira. No obstante, las posibilidades que brinda esta función no solo se limita a la totalización de casos, está puese usarse para computar estadísticas descriptivas sobre las diferentes variables de un conjunto de datos dado. A continuación, conoceremos el uso de esta función sobre la base de datos _penguins_ (Tabla 6) del paquete **palmerpenguins**.
+
+```{r Penguins, echo = TRUE, results = 'hide', warning = FALSE}
+
+# install.packages(pkgs = "palmerpenguins", dependencies = TRUE)
+
+library(palmerpenguins)
+
+pinguinos <- penguins
+
+```
+
+Tabla 6. Medidas de tamaño para diferentes especies de pinguinos adultos en la isla Palmer.
+```{r DataPenguins, echo = FALSE, results = 'asis'}
+
+gt(data = pinguinos) %>% 
+  tab_options(table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold", container.height = px(x = 500), container.overflow.y = TRUE) %>% 
+  cols_align(align = "center")
+
+```
+
+<br>
+Para los propósitos del ejemplo, nos concentraremos en la variable _bill_length_mm_, la cual hace referencia a la medida de longitud del pico (en milimetros) para los diferentes pinguinos muestreados. Sobre esta variable, calcularemos el total de casos, las medidas de tendencia central (media y mediana), medidas de variabilidad (desviación estándar y coeficiente de variabilidad), medidas de posición (cuartiles), como se muestra en la Tabla 6, en correspondencia con las siguientes líneas de código.
+
+```{r resumenpenguins, echo = TRUE, results = 'hide'}
+
+resumen <- pinguinos %>%
+  drop_na() %>% 
+  summarise(n = n(),
+            Media = mean(bill_length_mm), 
+            Mediana = median(bill_length_mm),
+            SD = sd(bill_length_mm),
+            CV = sd(bill_length_mm)/mean(bill_length_mm),
+            Q1 = quantile(x = bill_length_mm, probs = 0.25),
+            Q2 = quantile(x = bill_length_mm, probs = 0.50),
+            Q3 = quantile(x = bill_length_mm, probs = 0.75))
+
+```
+
+Tabla 6. Estadísticas descriptivas para la longitud del pico (mm) en diferentes especies de pinguinos adultos en la isla Palmer.
+```{r tableresumenpenguins, echo = FALSE, results = 'asis'}
+
+gt(data = resumen) %>% 
+  tab_options(table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold") %>% 
+  cols_align(align = "center")
+
+```
+
+Del código que da origen a estos resultados, se debe notar qué, dada la existencia de valores `NA` en los datos, fue necesario suprimir el(los) registros donde estos valores ausentes se presentasen, dada la sensibilidad a la presencia de `NA` de algunas funciones empleadas  (i.e. `quantile`). `n()` cálcula el total de observaciones del conjunto de datos, `mean()` y `median()` determinan las medidas de tendencia central elegidas (media y mediana), `sd()` cómputa la desviación estándar y, los cuartiles (medidas de posición), son determinados con la función `quantile()`. Al no existir una función en la base de R para determinar el coeficiente de variación, el cáculo de este se realizó de forma mecánica, una vez conocidos el valor de la media y la desviación estándar.
+
+Las estadísticas descriptivas pueden enriquecerse si se toma en cuenta las medidas determinadas anteriormente segmentadas por grupos -en función de una variable categórica-, por ejemplo, conocer las medidas de resumen para la variable longitud del pico de los pinguinos, discriminadas por especie (Tabla 7). Este tipo de resumen, se consigue incluyendo la función `group_by()` en el bloque de código anterior, donde se especifica que la agrupación de las estadísticas se realizará por el sexo de los individuos, como se muestra a continuación:
+
+```{r CodeResumenPenguinsSpecie, echo = TRUE, results = 'hide'}
+
+resumen_sexo <- pinguinos %>%
+  drop_na() %>% 
+  group_by(species) %>% 
+  summarise(n = n(),
+            Media = mean(bill_length_mm), 
+            Mediana = median(bill_length_mm),
+            SD = sd(bill_length_mm),
+            CV = sd(bill_length_mm)/mean(bill_length_mm),
+            Q1 = quantile(x = bill_length_mm, probs = 0.25),
+            Q2 = quantile(x = bill_length_mm, probs = 0.50),
+            Q3 = quantile(x = bill_length_mm, probs = 0.75))
+
+```
+
+Tabla 7. Estadísticas descriptivas por especie para la longitud del pico (mm) en diferentes especies de pinguinos adultos en la isla Palmer.
+```{r TableResumenPenguinsSex, echo = FALSE, results = 'asis'}
+
+gt(data = resumen_sexo) %>% 
+  tab_options(table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold") %>% 
+  cols_align(align = "center")
+
+```
+
+Las posibilidades para resumenes de casos son variadas y dependerán de la naturaleza de los datos misma y las necesidades de información requeridas. Por ejemplo, se pueden incluir medidas de asimetria y kurtosis y/o más variables de agrupación.
