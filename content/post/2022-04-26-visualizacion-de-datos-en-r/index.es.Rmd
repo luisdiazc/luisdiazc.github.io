@@ -1,0 +1,303 @@
+---
+title: Visualización de datos en R
+author: Luis Díaz Chávez
+date: '2022-04-26'
+slug: visualizacion-de-datos-en-r
+categories:
+  - R
+tags:
+  - R
+  - Data Science
+  - Statistic
+  - plot
+  - ggplot
+subtitle: ''
+summary: ''
+authors: []
+lastmod: '2022-04-26T00:44:35-05:00'
+featured: no
+image:
+  caption: ''
+  focal_point: ''
+  preview_only: no
+projects: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(gt)
+```
+
+# Introducción
+
+En post anteriores, hemos visto una pequeña prueba de las potencialidades de R en la manipulación de datos, aunado a la facilidad que ofrece en la escritura de código para filtar, seleccionar, transformar, agrupar, ordenar y resumir los datos; mejorando sustancialmente el entendimiento de los mismos. Sin embargo, las potencialidades de R y sus librerías han sido mayormente aceptadas por la comunidad de científicos de datos por ofrecer un conjunto denso de herramientas para la visualización de datos, a través de funciones que permiten la construcción de gráficos de gran calidad, elegancia y versatilidad. De alli, que existan diversos paquetes con funciones poderosas para la construcción de gráficos, siendo de las más poderosas y populares, las funciones del paquete **ggplot2**, que hace parte del ya mencionado **tidyverse**.
+
+La función `ggplot()`, es la función clave para la construcción de gráficos; como argumentos de esta función se debe especificar el conjunto de datos (`data`) desde el cual se extraerá la información para la creación del gráfico, y seguido a esto, se debe indicar la forma en que se asignarán las variables del conjunto de datos a propiedades visuales del gráfico mediante el argumento `mapping = aes(x, y, ...)`. Lo anterior, solo especifica un sistema de coordenadas al que podras ir añadiendo capas, tales como la geometría que se empleará para la creación del gráfico (puntos, líneas, áreas, barras, etc) mediante la familia de funciones con el prefijo `geom_`.
+
+La mejor forma de entender el uso de `ggplot()` es mediante ejemplos, a continuación, se expndrá la ruta programática a seguir para la construcción de las tipos de gráficos de uso más recurrente.
+
+# Gráficos de barras (_barplot_)
+
+Los gráficos de barras son representaciones bidimensionales en la que los objetos gráficos (visuales) elementales son un conjunto de rectángulos dispuestos de forma paralela, de manera que la extensión de los mismos es proporcional a la magnitud que se desea representar (Díaz y Rosado, 2019). A manera de ejemplo, la construcción de este gráfico la realizaremos sobre la base de datos de cifras de contagios de covid 19 en el departamento de la Guajira (Tabla 1), iniciando con el cómputo del número de casos de contagio por mes durante el periodo de pandemia, mediante el uso de las funciones de filtrado y resumen de datos del paquete **dplyr** comentadas en secciones anteriores, finalizando con la conversión de la variable _Fecha_ en factor, un tipo de objeto de datos que almacena cadenas de caracteres con un orden intrínseco (variables cualitativas ordinales). Para mayores detalles, consultar los post anteriores. 
+
+```{r CodeCovid19Guajira, echo = TRUE, results = 'hide', warning = FALSE, message = FALSE}
+
+library(tidyverse)
+library(lubridate)
+
+covid19 <- read_csv(file = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/Casos positivos COVID-19 Colombia.csv", col_names = TRUE)
+
+covid19_guajira <- covid19 %>% 
+  filter(`Nombre departamento` == "GUAJIRA") %>% 
+  select(`fecha reporte web`, `Nombre departamento`, `Nombre municipio`, Edad, Sexo, Estado) %>% 
+  mutate(`fecha reporte web` = ymd(`fecha reporte web`), Mes = month(`fecha reporte web`, label = TRUE, abbr = FALSE), Año = year(`fecha reporte web`), Fecha = paste(Mes, Año, sep = "-")) %>% 
+  group_by(Mes, Año, Fecha) %>% 
+  summarise(`No. de casos` = n()) %>% 
+  arrange(Año, Mes) %>% 
+  mutate(Fecha = factor(Fecha)) %>% 
+  ungroup()
+  
+```
+
+Tabla 1. Casos de contagio de Covid-19 en La Guajira.
+```{r TableCovid19Guajira, echo = FALSE, results = 'asis'}
+
+gt(data = covid19_guajira) %>% 
+  tab_options(table.width = pct(x = 100), table.align = "center", container.height = px(x = 500), container.overflow.y = TRUE, column_labels.font.weight = "bold") %>% 
+  cols_align(align = "center")
+  
+
+```
+
+<br>
+Luego, se construye el sistema de coordenadas del gráfico de barras (Figura 1) con la función `ggplot()`, ingresando como argumentos el set de datos desde el cual se extraerá la información, se agrega la geometría de barras con la función `geom_bar()`, dando como argumentos las variables a mapearse en el gráfico; aquí las fechas fueron ordenadas en la forma cronológica dada en el set de datos. Se agregaron las etiquetas con `geom_text()`, se adjudica un tema clásico (de preferencia del analista) con `theme_classic()`, y en la última línea de código, se disponen las etiquetas del eje _x_ en un ángulo de 60º para mejorar la visualización de estas en el panel gráfico. Para mayor detalles de las funciones y argumentos de **ggplot2** se recomienda leer su documentación (<https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf>).
+
+```{r BarplotCovid19Guajira, warning = FALSE, error = FALSE, message = FALSE, fig.align = 'center', fig.retina = 5, fig.width = 12, fig.align = 'center'}
+
+ggplot(data = covid19_guajira) + 
+  geom_bar(mapping = aes(x = fct_reorder(.f = Fecha, .x = 1:nrow(covid19_guajira)), y = `No. de casos`), stat = "identity", fill = "#0DABBC") +
+  xlab(label = NULL) +
+  geom_text(mapping = aes(x = fct_reorder(.f = Fecha, .x = 1:nrow(covid19_guajira)), y = `No. de casos`, label = `No. de casos`), size = 2.5, vjust = -0.5) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+  
+```
+<p align = "center">Figura 1. Cantidad de contagiados por Covid-19 en el departamento de La Guajira.</p>
+
+Lo anterior solo es una muestra de las posibilidades ofrecidas por **ggplot2** para la visualización de datos, pues un gráfico construido con esta librería puede contener tanta información y complejidad como nuestra creatividad lo permita. Por ejemplo, podemmos enriquecer un poco el gráfico anterior añadiendo la variables _Sexo_ y generar un gráfico de barras agrupadas (Figura 2). 
+
+```{r CodeBarplotCovid19Sex, warning = FALSE, error = FALSE, message = FALSE, fig.align = 'center', fig.retina = 5, fig.width = 12, fig.align = 'center'}
+
+covid19_guajira <- covid19 %>% 
+  filter(`Nombre departamento` == "GUAJIRA") %>% 
+  select(`fecha reporte web`, `Nombre departamento`, `Nombre municipio`, Edad, Sexo, Estado) %>% 
+  mutate(`fecha reporte web` = ymd(`fecha reporte web`), Mes = month(`fecha reporte web`, label = TRUE, abbr = FALSE), Año = year(`fecha reporte web`), Fecha = paste(Mes, Año, sep = "-")) %>% 
+  group_by(Mes, Año, Fecha, Sexo) %>% 
+  summarise(`No. de casos` = n()) %>% 
+  arrange(Año, Mes) %>% 
+  mutate(Fecha = factor(Fecha))
+
+ggplot(data = covid19_guajira) +
+  geom_bar(mapping = aes(x = fct_reorder(.f = Fecha, .x = 1:nrow(covid19_guajira)), y = `No. de casos`, fill = Sexo, group = Sexo), stat = "identity", position = "dodge") +
+  xlab(label = NULL) +
+  scale_fill_manual(values = c("#0DABBC", "#F7A535")) +
+  geom_text(mapping = aes(x = fct_reorder(.f = Fecha, .x = 1:nrow(covid19_guajira)), y = `No. de casos`, label = `No. de casos`, group = Sexo), position = position_dodge(width = 1), vjust = -0.5, size = 2.5) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+<p align = "center">Figura 2. Cantidad de contagiados por sexo de Covid-19 en el departamento de La Guajira.</p>
+
+Del gráfico anterior surgen interrogantes como: (1) ¿existe alguna predisposición imnunológica en las mujeres que las hace más susceptibles a contagiarse de Covid 19? o (2) ¿son las mujeres más indisciplinadas en la atención de las medidas de bioseguridad impuestas para contrarrestar los contagios por Covid 19?
+
+# Gráficos de líneas (_lineplot_)
+
+Cuando el flujo de análisis se concentra en evaluar el el comportamiento de una variable en el tiempo (evolución) con el objeto de identificar tendencias, especialmente cuando el volumen de datos es grande y equidistantes en el tiempo, los gráficos de líneas son la herramienta más idónea para la visualización de los mismos. Siguiendo con la base de datos de contagios por Covid 19 en el departamento de La Guajira, construiremos un gráfico de líneas sobre la evolución de los casos positivos durante el periodo de emergencia sanitaria, apoyados de las funciones de **ggplot2**.
+
+Iniciaremos con la preparación de los datos de contagios diarios reportados en La Guajira (Tabla 2), tomando como base el objeto `covid19`, creada antes. Tenga en cuanta que seguiremos usando los paquetes **tidyverse** y **lubridate** para la manipulación de los datos y fechas, respectivamente.
+
+```{r CodeCovid19GuajiraDia, echo = TRUE, results = 'hide', message = FALSE, warning = FALSE}
+
+covid19_guajira_diario <- covid19 %>% 
+  filter(`Nombre departamento` == "GUAJIRA") %>% 
+  select(`fecha reporte web`) %>% 
+  mutate(Fecha = ymd(`fecha reporte web`)) %>% 
+  group_by(Fecha) %>% 
+  summarise(`No. de contagios` = n())
+
+```
+
+Tabla 2. Contagios diarios por Covid 19 periodo del 31 de marzo de 2020 al 03 de abril de 2022.
+```{r TableCovid19GuajiraDiario, echo = FALSE, results = 'asis'}
+
+gt(data = covid19_guajira_diario) %>% 
+  tab_options(container.height = px(x = 500), container.overflow.y = TRUE, table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold") %>% 
+  cols_align(align = "center")
+
+```
+
+<br>
+Ya con los datos preparados, se procede a la construcción del gráfico de línea (Figura 3) con la ejecución del siguiente bloque de código.
+
+```{r LineCovid19GuajiraDiario, echo = TRUE, results = 'asis', fig.width = 12, fig.retina = 5, fig.align = 'center'}
+
+ggplot(data = covid19_guajira_diario, mapping = aes(x = Fecha, y = `No. de contagios`)) +
+  geom_line(colour = "#EB5D50") +
+  xlab(label = "Fecha") +
+  ylab(label = "No. de contagios") +
+  scale_y_continuous(breaks = seq(from = 0, to = 800, by = 50)) +
+  scale_x_date(date_labels = "%Y %b", date_breaks = "1 month", ) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))      
+
+
+```
+<p align = "center">Figura 3. Contagios diarios de Covid 19 en el departamento de La Guajira</p>
+
+Como antes, este análisis se puede enriquecer, segmentando la data por alguna variable de agrupación, por ejemplo el sexo (Figura 4) de los contagiados, siguiendo las líneas de código siguientes.
+
+```{r LineCovid19GuajiraDiarioSex, echo = TRUE, results = 'asis', fig.width = 12, fig.retina = 5, fig.align = 'center'}
+
+covid19_guajira_diario <- covid19 %>% 
+  filter(`Nombre departamento` == "GUAJIRA") %>% 
+  select(`fecha reporte web`, Sexo) %>% 
+  mutate(Fecha = ymd(`fecha reporte web`)) %>% 
+  group_by(Fecha, Sexo) %>% 
+  summarise(`No. de contagios` = n())
+
+ggplot(data = covid19_guajira_diario, mapping = aes(x = Fecha, y = `No. de contagios`, colour = Sexo)) +
+  geom_line() +
+  scale_fill_manual(values = c("#EB5D50", "#0DABBC")) +
+  xlab(label = "Fecha") +
+  ylab(label = "No. de contagios") +
+  scale_y_continuous(breaks = seq(from = 0, to = 800, by = 50)) +
+  scale_x_date(date_labels = "%Y %b", date_breaks = "1 month", ) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))      
+
+
+```
+<p align = "center">Figura 4. Contagios diarios de Covid 19 por sexo en el departamento de La Guajira.</p>
+
+# Grafícos de dispersión (_scatterplot_)
+
+Los graficos de dispersión, son la herramienta más util en la exploración de datos para visualizar la relación funcional entre pares de variables de naturaleza cuantitativa. Su construcción, siguiendo la filosofía de **ggplot2**, resulta bastante simple de seguir para cualquier análista de datos en formación. A continuación, veremos un ejemplo; crearemos un gráfico de dispesión entre las variables _Petal.Length_ y _Petal.Width_ del dataset **iris** (Tabla 3), un conjunto de datos sobre mediciones morfométricas para 50 flores de tres (3) especies del género _Iris_: _Iris setosa_, _Iris virginica_ e _Iris versicolor_.
+
+```{r CodeIris, echo = TRUE, results = 'hide'}
+
+data("iris")
+
+```
+
+Tabla 3. Mediciones de variables morfométricas en flores del genero <i>Iris</i>.
+```{r TableIris, echo = FALSE, results = 'asis'}
+
+gt(data = iris) %>% 
+  tab_options(container.height = px(x = 500), container.overflow.y = TRUE, table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold") %>% 
+  cols_align(align = "center")
+
+```
+
+<br>
+A partir de este dataset se contruye el gráfico (Figura 5), ejecutando el siguiente bloque de código, teniendo especial atención con los argumentos de la función `geom_point()`.
+
+```{r ScatterplotIris, echo = TRUE, results = 'asis', fig.width = 8, fig.retina = 5, fig.align = 'center'}
+
+ggplot(data = iris, mapping = aes(x = Petal.Width, y = Petal.Length)) + 
+  geom_point(shape = 21, fill = "#0DABBC", colour = "#0DABBC") +
+  xlab(label = "Ancho del pétalo (cm)") +
+  ylab(label = "Longitud del pétalo (cm)") +
+  theme_classic()
+  
+```
+<p align = "center">Figura 5. Relación entre la longitud y el ancho del pétalo del genero <i>Iris</i>.</p>
+
+Como se observa en la Tabla 3, las mediciones morfométricas se realizan sobre tres (3) especies del género _Iris_, podría profundizarse en el análisis, segmentando los datos por la variable _Species_, como se muestra en la Figura 6, correspondiente al siguiente bloque de código.
+
+```{r ScatterplotIrisSpecies, echo = TRUE, results = 'asis', fig.width = 8, fig.retina = 5, fig.align = 'center'}
+
+ggplot(data = iris, mapping = aes(x = Petal.Width, y = Petal.Length, colour = Species, shape = Species)) + 
+  geom_point() +
+  scale_fill_manual(values = c("#0DABBC", "#EB5D50", "#F7A535")) +
+  xlab(label = "Ancho del pétalo (cm)") +
+  ylab(label = "Longitud del pétalo (cm)") +
+  theme_classic()
+
+```
+<p align = "center">Figura 6. Relación entre la longitud y el ancho del pétalo para especies del género <i>Iris</i>.</p>
+
+Además, es posible con pocas líneas de código, crear un panel gráfico para cada especie (Figura 7), usando la función `facet_wrap()`.
+
+```{r ScatterplotIrirSpeciesFacet, echo = TRUE, results = 'asis', fig.width = 8, fig.retina = 5, fig.align = 'center'}
+
+ggplot(data = iris, mapping = aes(x = Petal.Width, y = Petal.Length, colour = Species)) + 
+  geom_point() +
+  scale_colour_manual(values = c("#0DABBC", "#EB5D50", "#F7A535"), name = "Especies") +
+  xlab(label = "Ancho del pétalo (cm)") +
+  ylab(label = "Longitud del pétalo (cm)") +
+  facet_wrap(~ Species) +
+  theme_classic() +
+  theme(strip.text = element_text(face = "italic"),
+        legend.text = element_text(face = "italic"), 
+        legend.title.align = 0.5)
+
+```
+<p align = "center">Figura 7. Relación entre la longitud y el ancho del pétalo para especies del genero <i>Iris</i> en diferentes paneles.</p>
+
+
+Note los cambios realizados en los argumentos de cada función para lograr este resultado. Analice y discuta la información que se pueda extraer de este gráfico sobre las variables empleadas. Replique este gráfico usando las variables _Sepal.Length_ y _Sepal.Width_.
+
+# Gráficos de cajas y bigotes (_boxplot_)
+
+Cuando el análisis de los datos se focaliza en el conocer la variabilidad de las mediciones de una variable cuantitativa sobre diferentes grupos experimentales (categorías), los diagramas de cajas y bigotes son la forma de visualización más adecuada, permitiendo además, recolectar información sobre la distribución de los datos en cada grupo experimental y el grado de sesgo que pudiesen presentar.
+
+Dentro de **ggplot2**, este tipo de representaciones se realizan facilmente con el uso de la función `geom_boxplot()`. A manera de ejemplo, usaremos el dataset _penguins_ del paquete **palmerpenguins** expuesto en la Tabla 4.
+
+```{r CodePenguins, echo = TRUE, results = 'hide', warning = FALSE, message = FALSE}
+
+library(palmerpenguins)
+data("penguins")
+
+```
+
+```{r TablePenguins, echo = FALSE, results = 'asis'}
+
+gt(data = penguins) %>% 
+  tab_options(container.height = px(x = 500), container.overflow.y = TRUE, table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold") %>% 
+  cols_align(align = "center")
+
+```
+
+<br>
+A continuación, mostraremos el bloque de código requerido para la construcción de un boxplot simple (Figura 8), donde se ilustre la variación de la variable _bill_length_mm_ (largo del pico en mm) entre las diferentes especies de pinguinos muestreadas.
+
+```{r BoxplotPenguins, echo = TRUE, results = 'asis', fig.width = 8, fig.retina = 5, fig.align = 'center'}
+
+ggplot(data = penguins, mapping = aes(x = species, y = bill_length_mm, fill = species)) +
+  geom_boxplot() +
+  scale_fill_manual(name = "Especies", values = c("#0DABBC", "#EB5D50", "#F7A535")) +
+  xlab(label = "Especies") +
+  ylab(label = "Longitud del pico (mm)") +
+  theme_classic()
+
+```
+<p align = "center">Figuara 8. Variabilidad del largo del pico (mm) entre especies de pinguinos del Archipielago Palmer.</p>
+
+Como antes, existen argumentos que pueden añadir otros elementos al gráfico con el objeto de proporcionar más información sobre la naturaleza de los datos, su distribución y así, dar respuesta a interrogantes planteados sobre los mismos. Por ejemplo, dentro de la función `geom_boxplot()`, puede usarse el aergumento `notch = TRUE`, el cual generará una muescas en las cajas de cada gráfico, las cuales representan un intervalo de confianza al 95% para la mediana de la variables de interés entre los grupos experimentales, como se muestra en la Figura 9, correpondiente a las siguientes líneas de código.
+
+```{r BoxplotPenguinsNotch, echo = TRUE, results = 'asis', fig.width = 8, fig.retina = 5, fig.align = 'center'}
+
+ggplot(data = penguins, mapping = aes(x = species, y = bill_length_mm, fill = species)) +
+  geom_boxplot(notch = TRUE) +
+  scale_fill_manual(name = "Especies", values = c("#0DABBC", "#EB5D50", "#F7A535")) +
+  xlab(label = "Especies") +
+  ylab(label = "Longitud del pico (mm)") +
+  theme_classic()
+
+```
+<p align = "center">Figura 9. Variabilidad del largo del pico (mm) entre especies de pinguinos del Archipielago Palmer con muescas.</p>
+
+
+De está manera, con la inspección visual del gráfico se pueden apresurar inferencias sobre la existencia de diferencias significativas en los valores medios de longitud del pico entre especies estudiadas.
