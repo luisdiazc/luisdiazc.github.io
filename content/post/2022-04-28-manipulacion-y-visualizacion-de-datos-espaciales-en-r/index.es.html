@@ -1,0 +1,1722 @@
+---
+title: Manipulación y visualización de datos espaciales en R
+author: ''
+date: '2022-04-28'
+slug: manipulacion-y-visualizacion-de-datos-espaciales-en-r
+categories: []
+tags: []
+subtitle: ''
+summary: ''
+authors: []
+lastmod: '2022-04-28T17:55:36-05:00'
+featured: no
+image:
+  caption: ''
+  focal_point: ''
+  preview_only: no
+projects: []
+---
+
+
+
+<div id="manipulación-y-visualización-de-datos-espaciales-en-r" class="section level1">
+<h1>Manipulación y visualización de datos espaciales en R</h1>
+<p>Hasta el momento hemos enfocado la discusión en las potencialidades y funcionalidades ofrecidas por R para la manipulación y visualización de datos comunes al proceso de captura de datos de cualquier disciplina. En esta sección, ampliaremos el flujo de trabajo hacia los datos espaciales, un tipo especial de datos que mediante arreglos rectangulaes, además de contener información alfanumerica, también almacenan información relativa a su localización en el espacio, es decir, su referencia espacial; posibilitando que los análisis que se deriven de estos sean espacial o geográficamente explicitos.</p>
+<p>De forma genérica, los datos espaciales son una forma de representar la realidad del territorio y sus complejidades. Para ello, existes dos formas de almacenamiento de la información espacial: vectorial y ráster. Los datos vectoriales representan el mundo a través de puntos,líneas o polígonos, dependiendo del elemento a representar y la escala de trabajo. Por su parte, los datos ráster, dividen el continuo de la superficie a modelar en pequeñas celdas (pixeles) de tamaño constante donde se almacena la información inherente a elemento representado, es decir, representan la superficie estudiada a través de la construcción de areglos rectangulates (filas y columnas), donde en cada celda se almacena la información de la misma.</p>
+<p>R, posee poderosas librerías para la manipulación de datos espaciales, siendo de uso más generalizado las librerías <strong>sf</strong> (<em>simple feature</em>) para datos vectoriales y <strong>raster</strong> para datos ráster. A continuación veremos la forma en que cada una de estas librerías es usada.</p>
+</div>
+<div id="lectura-de-datos-espaciales" class="section level1">
+<h1>Lectura de datos espaciales</h1>
+<div id="lectura-de-datos-vectoriales" class="section level2">
+<h2>Lectura de datos vectoriales</h2>
+<p>Los datos espaciales de tipo vectorial se encuentran en una amplia variedad de formatos. Dentro de estos, el formato <em>shapefile</em>, es el más popular en la comunidad de usuarios de datos espaciales. En R, la lectura de este tipo de datos se hace mediante la función <code>st_read()</code> del paquete <strong>sf</strong>, como se muestra a continuación:</p>
+<pre class="r"><code>library(sf)
+
+punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Est_met_rio_Rancheria.shp&quot;)</code></pre>
+<pre><code>## Reading layer `Est_met_rio_Rancheria&#39; from data source 
+##   `C:\Users\Luis\Documents\Manipulacion analisis datos espaciales R\Datos\shp\Est_met_rio_Rancheria.shp&#39; 
+##   using driver `ESRI Shapefile&#39;
+## Simple feature collection with 69 features and 26 fields
+## Geometry type: POINT
+## Dimension:     XY
+## Bounding box:  xmin: 1105018 ymin: 1669785 xmax: 1172325 ymax: 1769337
+## Projected CRS: MAGNA-SIRGAS / Colombia Bogota zone</code></pre>
+<pre class="r"><code>linea &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Hidrografia_rio_Rancheria.shp&quot;)</code></pre>
+<pre><code>## Reading layer `Hidrografia_rio_Rancheria&#39; from data source 
+##   `C:\Users\Luis\Documents\Manipulacion analisis datos espaciales R\Datos\shp\Hidrografia_rio_Rancheria.shp&#39; 
+##   using driver `ESRI Shapefile&#39;
+## Simple feature collection with 360 features and 13 fields
+## Geometry type: MULTILINESTRING
+## Dimension:     XY
+## Bounding box:  xmin: 1075949 ymin: 1663786 xmax: 1181776 ymax: 1773419
+## Projected CRS: MAGNA-SIRGAS / Colombia Bogota zone</code></pre>
+<pre class="r"><code>poligono &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Cuenca_rio_Rancheria.shp&quot;)</code></pre>
+<pre><code>## Reading layer `Cuenca_rio_Rancheria&#39; from data source 
+##   `C:\Users\Luis\Documents\Manipulacion analisis datos espaciales R\Datos\shp\Cuenca_rio_Rancheria.shp&#39; 
+##   using driver `ESRI Shapefile&#39;
+## Simple feature collection with 1 feature and 1 field
+## Geometry type: POLYGON
+## Dimension:     XY
+## Bounding box:  xmin: 1075693 ymin: 1661587 xmax: 1181887 ymax: 1775180
+## Projected CRS: MAGNA-SIRGAS / Colombia Bogota zone</code></pre>
+<p>Observese que se utilizó la función <code>st_read()</code>, para realizar la lectura de tres capas vectoriales correspondientes a las geometrías que representa: puntos, líneas y poligonos. La lectura de cada archivo, imprime en consola información del encabezado relacionada con su formato de almacenamiento, dimensiones y sistema de referencia en el que este se encuentra.</p>
+<p>Cada una de estas capas almacena información alfanumerica en una tabla de atributos subyacente. Podemos ver los primeros registros (Tabla 1) a través de la siguiente línea de código:</p>
+<p>Tabla 1. Primeros 10 registros de tabla de atributos de datos verctorial tipo punto.</p>
+<div id="njokfydvbn" style="overflow-x:auto;overflow-y:auto;width:auto;height:500px;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#njokfydvbn .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: 100%;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#njokfydvbn .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#njokfydvbn .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#njokfydvbn .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#njokfydvbn .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#njokfydvbn .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#njokfydvbn .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#njokfydvbn .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#njokfydvbn .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#njokfydvbn .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#njokfydvbn .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#njokfydvbn .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#njokfydvbn .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#njokfydvbn .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#njokfydvbn .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#njokfydvbn .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#njokfydvbn .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#njokfydvbn .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#njokfydvbn .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#njokfydvbn .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#njokfydvbn .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#njokfydvbn .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#njokfydvbn .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#njokfydvbn .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#njokfydvbn .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#njokfydvbn .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#njokfydvbn .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#njokfydvbn .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#njokfydvbn .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#njokfydvbn .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#njokfydvbn .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#njokfydvbn .gt_left {
+  text-align: left;
+}
+
+#njokfydvbn .gt_center {
+  text-align: center;
+}
+
+#njokfydvbn .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#njokfydvbn .gt_font_normal {
+  font-weight: normal;
+}
+
+#njokfydvbn .gt_font_bold {
+  font-weight: bold;
+}
+
+#njokfydvbn .gt_font_italic {
+  font-style: italic;
+}
+
+#njokfydvbn .gt_super {
+  font-size: 65%;
+}
+
+#njokfydvbn .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#njokfydvbn .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#njokfydvbn .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#njokfydvbn .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#njokfydvbn .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#njokfydvbn .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">OBJECTID</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">AREA_OPER_</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">CODIGO_CAT</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">NOMBRE</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">TIPO</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">CLASE</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">CATEG_</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">ESTADO</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">CORRIENTE</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">DEPTO</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">MPIO</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Grados_LA</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Minutos_LA</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Segundos_L</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Direccion</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">LATITUD</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Grados_LOG</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Minutos_LO</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Segundos_1</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Direccion1</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">LONGITUD</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">ALTITUD</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">FECHA_INST</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">FECHA_SUSP</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">F24</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">F25</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">geometry</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_center">1788</td>
+<td class="gt_row gt_center">AREA OPERATIVA 05</td>
+<td class="gt_row gt_center">15060020</td>
+<td class="gt_row gt_center">CUESTECITA    [15060020]</td>
+<td class="gt_row gt_center">CON</td>
+<td class="gt_row gt_center">MET</td>
+<td class="gt_row gt_center">PM</td>
+<td class="gt_row gt_center">ACT</td>
+<td class="gt_row gt_center">AY EL SALADO</td>
+<td class="gt_row gt_center">LA GUAJIRA</td>
+<td class="gt_row gt_center">ALBANIA</td>
+<td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">50.6</td>
+<td class="gt_row gt_center">N</td>
+<td class="gt_row gt_center">11.19739</td>
+<td class="gt_row gt_center">72</td>
+<td class="gt_row gt_center">36</td>
+<td class="gt_row gt_center">42.5</td>
+<td class="gt_row gt_center">W</td>
+<td class="gt_row gt_center">-72.61181</td>
+<td class="gt_row gt_center">93</td>
+<td class="gt_row gt_center">15/05/1959</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">c(1160091.76381843, 1730465.51453015)</td></tr>
+    <tr><td class="gt_row gt_center">1789</td>
+<td class="gt_row gt_center">AREA OPERATIVA 05</td>
+<td class="gt_row gt_center">15060030</td>
+<td class="gt_row gt_center">CRUZ LA HDA [15060030]</td>
+<td class="gt_row gt_center">CON</td>
+<td class="gt_row gt_center">MET</td>
+<td class="gt_row gt_center">PM</td>
+<td class="gt_row gt_center">SUS</td>
+<td class="gt_row gt_center">AY PELOMONO</td>
+<td class="gt_row gt_center">LA GUAJIRA</td>
+<td class="gt_row gt_center">BARRANCAS</td>
+<td class="gt_row gt_center">10</td>
+<td class="gt_row gt_center">58</td>
+<td class="gt_row gt_center">0.0</td>
+<td class="gt_row gt_center">N</td>
+<td class="gt_row gt_center">10.96667</td>
+<td class="gt_row gt_center">72</td>
+<td class="gt_row gt_center">46</td>
+<td class="gt_row gt_center">0.0</td>
+<td class="gt_row gt_center">W</td>
+<td class="gt_row gt_center">-72.76667</td>
+<td class="gt_row gt_center">195</td>
+<td class="gt_row gt_center">15/06/1971</td>
+<td class="gt_row gt_center">15/12/1985</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">c(1143286.38394997, 1704858.25821027)</td></tr>
+    <tr><td class="gt_row gt_center">1790</td>
+<td class="gt_row gt_center">AREA OPERATIVA 05</td>
+<td class="gt_row gt_center">15060040</td>
+<td class="gt_row gt_center">LAGUNITAS    [15060040]</td>
+<td class="gt_row gt_center">CON</td>
+<td class="gt_row gt_center">MET</td>
+<td class="gt_row gt_center">PM</td>
+<td class="gt_row gt_center">ACT</td>
+<td class="gt_row gt_center">AY AGUADA PICA</td>
+<td class="gt_row gt_center">LA GUAJIRA</td>
+<td class="gt_row gt_center">BARRANCAS</td>
+<td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">2</td>
+<td class="gt_row gt_center">3.7</td>
+<td class="gt_row gt_center">N</td>
+<td class="gt_row gt_center">11.03436</td>
+<td class="gt_row gt_center">72</td>
+<td class="gt_row gt_center">52</td>
+<td class="gt_row gt_center">39.1</td>
+<td class="gt_row gt_center">W</td>
+<td class="gt_row gt_center">-72.87753</td>
+<td class="gt_row gt_center">900</td>
+<td class="gt_row gt_center">15/05/1971</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">c(1131136.63036323, 1712297.26572575)</td></tr>
+    <tr><td class="gt_row gt_center">1791</td>
+<td class="gt_row gt_center">AREA OPERATIVA 05</td>
+<td class="gt_row gt_center">15060050</td>
+<td class="gt_row gt_center">SABANAS DE MANUELA</td>
+<td class="gt_row gt_center">CON</td>
+<td class="gt_row gt_center">MET</td>
+<td class="gt_row gt_center">PM</td>
+<td class="gt_row gt_center">ACT</td>
+<td class="gt_row gt_center">AY LA MONTANA</td>
+<td class="gt_row gt_center">LA GUAJIRA</td>
+<td class="gt_row gt_center">DISTRACCIÓN</td>
+<td class="gt_row gt_center">10</td>
+<td class="gt_row gt_center">57</td>
+<td class="gt_row gt_center">10.8</td>
+<td class="gt_row gt_center">N</td>
+<td class="gt_row gt_center">10.95300</td>
+<td class="gt_row gt_center">73</td>
+<td class="gt_row gt_center">2</td>
+<td class="gt_row gt_center">52.7</td>
+<td class="gt_row gt_center">W</td>
+<td class="gt_row gt_center">-73.04797</td>
+<td class="gt_row gt_center">420</td>
+<td class="gt_row gt_center">15/08/1963</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">c(1112538.8853725, 1703226.7975035)</td></tr>
+    <tr><td class="gt_row gt_center">1792</td>
+<td class="gt_row gt_center">AREA OPERATIVA 05</td>
+<td class="gt_row gt_center">15060060</td>
+<td class="gt_row gt_center">LOMITAS LAS [15060060]</td>
+<td class="gt_row gt_center">CON</td>
+<td class="gt_row gt_center">MET</td>
+<td class="gt_row gt_center">PM</td>
+<td class="gt_row gt_center">ACT</td>
+<td class="gt_row gt_center">AY HONDO</td>
+<td class="gt_row gt_center">LA GUAJIRA</td>
+<td class="gt_row gt_center">BARRANCAS</td>
+<td class="gt_row gt_center">10</td>
+<td class="gt_row gt_center">56</td>
+<td class="gt_row gt_center">6.6</td>
+<td class="gt_row gt_center">N</td>
+<td class="gt_row gt_center">10.93517</td>
+<td class="gt_row gt_center">72</td>
+<td class="gt_row gt_center">41</td>
+<td class="gt_row gt_center">4.8</td>
+<td class="gt_row gt_center">W</td>
+<td class="gt_row gt_center">-72.68467</td>
+<td class="gt_row gt_center">300</td>
+<td class="gt_row gt_center">15/05/1971</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">c(1152267.39853782, 1701413.19057991)</td></tr>
+    <tr><td class="gt_row gt_center">1793</td>
+<td class="gt_row gt_center">AREA OPERATIVA 05</td>
+<td class="gt_row gt_center">15060070</td>
+<td class="gt_row gt_center">JUGUETE EL [15060070]</td>
+<td class="gt_row gt_center">CON</td>
+<td class="gt_row gt_center">MET</td>
+<td class="gt_row gt_center">PM</td>
+<td class="gt_row gt_center">SUS</td>
+<td class="gt_row gt_center">GUATAPURI</td>
+<td class="gt_row gt_center">LA GUAJIRA</td>
+<td class="gt_row gt_center">FONSECA</td>
+<td class="gt_row gt_center">10</td>
+<td class="gt_row gt_center">47</td>
+<td class="gt_row gt_center">9.6</td>
+<td class="gt_row gt_center">N</td>
+<td class="gt_row gt_center">10.78600</td>
+<td class="gt_row gt_center">72</td>
+<td class="gt_row gt_center">46</td>
+<td class="gt_row gt_center">6.1</td>
+<td class="gt_row gt_center">W</td>
+<td class="gt_row gt_center">-72.76836</td>
+<td class="gt_row gt_center">390</td>
+<td class="gt_row gt_center">15/05/1971</td>
+<td class="gt_row gt_center">28/08/2014</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">c(1143187.33178808, 1684868.34322006)</td></tr>
+    <tr><td class="gt_row gt_center">1794</td>
+<td class="gt_row gt_center">AREA OPERATIVA 05</td>
+<td class="gt_row gt_center">15060080</td>
+<td class="gt_row gt_center">CANAVERALES    [15060080]</td>
+<td class="gt_row gt_center">CON</td>
+<td class="gt_row gt_center">MET</td>
+<td class="gt_row gt_center">PM</td>
+<td class="gt_row gt_center">ACT</td>
+<td class="gt_row gt_center">RANCHERIA</td>
+<td class="gt_row gt_center">LA GUAJIRA</td>
+<td class="gt_row gt_center">SAN JUAN DEL CESAR</td>
+<td class="gt_row gt_center">10</td>
+<td class="gt_row gt_center">45</td>
+<td class="gt_row gt_center">28.0</td>
+<td class="gt_row gt_center">N</td>
+<td class="gt_row gt_center">10.75778</td>
+<td class="gt_row gt_center">72</td>
+<td class="gt_row gt_center">50</td>
+<td class="gt_row gt_center">42.8</td>
+<td class="gt_row gt_center">W</td>
+<td class="gt_row gt_center">-72.84522</td>
+<td class="gt_row gt_center">230</td>
+<td class="gt_row gt_center">15/08/1963</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">c(1134791.98468392, 1681711.01786148)</td></tr>
+    <tr><td class="gt_row gt_center">1795</td>
+<td class="gt_row gt_center">AREA OPERATIVA 05</td>
+<td class="gt_row gt_center">15060090</td>
+<td class="gt_row gt_center">GUACAMAYO    [15060090]</td>
+<td class="gt_row gt_center">CON</td>
+<td class="gt_row gt_center">MET</td>
+<td class="gt_row gt_center">PG</td>
+<td class="gt_row gt_center">ACT</td>
+<td class="gt_row gt_center">RANCHERIA</td>
+<td class="gt_row gt_center">LA GUAJIRA</td>
+<td class="gt_row gt_center">HATO NUEVO</td>
+<td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">3</td>
+<td class="gt_row gt_center">48.2</td>
+<td class="gt_row gt_center">N</td>
+<td class="gt_row gt_center">11.06339</td>
+<td class="gt_row gt_center">72</td>
+<td class="gt_row gt_center">46</td>
+<td class="gt_row gt_center">36.1</td>
+<td class="gt_row gt_center">W</td>
+<td class="gt_row gt_center">-72.77669</td>
+<td class="gt_row gt_center">220</td>
+<td class="gt_row gt_center">15/08/1987</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">c(1142143.65405495, 1715554.9893697)</td></tr>
+    <tr><td class="gt_row gt_center">1796</td>
+<td class="gt_row gt_center">AREA OPERATIVA 05</td>
+<td class="gt_row gt_center">15060100</td>
+<td class="gt_row gt_center">POZO HONDO   [15060100]</td>
+<td class="gt_row gt_center">CON</td>
+<td class="gt_row gt_center">MET</td>
+<td class="gt_row gt_center">PM</td>
+<td class="gt_row gt_center">ACT</td>
+<td class="gt_row gt_center">AY POZO HONDO</td>
+<td class="gt_row gt_center">LA GUAJIRA</td>
+<td class="gt_row gt_center">BARRANCAS</td>
+<td class="gt_row gt_center">10</td>
+<td class="gt_row gt_center">59</td>
+<td class="gt_row gt_center">54.8</td>
+<td class="gt_row gt_center">N</td>
+<td class="gt_row gt_center">10.99856</td>
+<td class="gt_row gt_center">72</td>
+<td class="gt_row gt_center">49</td>
+<td class="gt_row gt_center">10.4</td>
+<td class="gt_row gt_center">W</td>
+<td class="gt_row gt_center">-72.81956</td>
+<td class="gt_row gt_center">210</td>
+<td class="gt_row gt_center">15/07/1987</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">c(1137489.52126624, 1708361.76612201)</td></tr>
+    <tr><td class="gt_row gt_center">1797</td>
+<td class="gt_row gt_center">AREA OPERATIVA 05</td>
+<td class="gt_row gt_center">15060110</td>
+<td class="gt_row gt_center">EJEMPLO EL [15060110]</td>
+<td class="gt_row gt_center">CON</td>
+<td class="gt_row gt_center">MET</td>
+<td class="gt_row gt_center">PM</td>
+<td class="gt_row gt_center">SUS</td>
+<td class="gt_row gt_center">AY TABACO</td>
+<td class="gt_row gt_center">LA GUAJIRA</td>
+<td class="gt_row gt_center">HATO NUEVO</td>
+<td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">8</td>
+<td class="gt_row gt_center">0.0</td>
+<td class="gt_row gt_center">N</td>
+<td class="gt_row gt_center">11.13333</td>
+<td class="gt_row gt_center">72</td>
+<td class="gt_row gt_center">36</td>
+<td class="gt_row gt_center">0.0</td>
+<td class="gt_row gt_center">W</td>
+<td class="gt_row gt_center">-72.60000</td>
+<td class="gt_row gt_center">116</td>
+<td class="gt_row gt_center">15/06/1978</td>
+<td class="gt_row gt_center">15/02/1996</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">c(1161416.89484451, 1723384.18973591)</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p><br>
+La información contenida en esta tabla se puede manipular siguiendo el flujo de trabajo presentado en secciones anteriores con apoyo en las funciones del paquete <strong>dplyr</strong>, teniendo como característica distintiva la presencia de un campo donde se almacena la información espacial, comunmente llamado <code>geometry</code>. Además, se pueden aprovechar las potencialidades de visualización del paquete <strong>ggplot2</strong> para hacer las representaciones de este tipo de datos y crear mapas realmente interesantes y apropiados para publicaciones científicas. A continuación, usaremos la función <code>geom_sf()</code> para representar los datos vectoriales leidos en líneas de código anteriores (Figura 1).</p>
+<pre class="r"><code>ggplot(data = poligono) +
+  geom_sf(color = &quot;purple&quot;, fill = NA) +
+  geom_sf(data = linea, color = &quot;blue&quot;) +
+  geom_sf(data = punto, color = &quot;red&quot;) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  coord_sf(datum = st_crs(3116)) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/PlotVector-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 1. Estaciones meteorológicas en la cuenca del rio Ranchería.
+</p>
+</div>
+<div id="lectura-de-datos-ráster" class="section level2">
+<h2>Lectura de datos ráster</h2>
+<p>Los datos espaciales tipo ráster, al igual que los datos vectoriales, se distribuyen en una amplia variedad de formatos, la mayoría de estos (si no la totalidad), se encuentran soportados para su lectura en R con la función <code>raster()</code> del paquete <strong>raster</strong>. Para ilustrarlo, se realizará la lectura de una imagen satelital Landsat 8 OLI, correspondiente al la banda del azul del espectro electromágnetico.</p>
+<pre class="r"><code>library(raster)
+
+l8_b5 &lt;- raster(x = &quot;C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/img/LC08_L1TP_008052_20210104_20210309_01_T1/LC08_L1TP_008052_20210104_20210309_01_T1_B5.TIF&quot;)
+
+l8_b5</code></pre>
+<pre><code>## class      : RasterLayer 
+## dimensions : 7711, 7551, 58225761  (nrow, ncol, ncell)
+## resolution : 30, 30  (x, y)
+## extent     : 615285, 841815, 1163385, 1394715  (xmin, xmax, ymin, ymax)
+## crs        : +proj=utm +zone=18 +datum=WGS84 +units=m +no_defs 
+## source     : LC08_L1TP_008052_20210104_20210309_01_T1_B5.TIF 
+## names      : LC08_L1TP_008052_20210104_20210309_01_T1_B5 
+## values     : 0, 65535  (min, max)</code></pre>
+<p>Al imprimir el objeto ráster, R nos muestra en el encabezado información inherente del mismo, como sus dimensiones (número de columnas, filas y pixeles), resolución espacial (tamaño de pixel), sistema de referencia espacial, ruta de almacenamiento (en disco o memoria), extensión expacial (<em>bounding box</em>), nombre del archivo y valores mínimos y máximos almacenados dentro del raster (rango de valores de pixel). Note que las imagenes Landsat 8, al encontrarse codificadas en una resolución radiométrica de 16 bits, almacenan sus valores de pixel en el rango de 0 a 65535 niveles de grises.</p>
+<p>En términos de visualización, el paquete <strong>raster</strong> contiene por defecto la función de <code>plot()</code>, sin embargo, esta no ofrece riqueza en la visualización. Como alternativa, trabajaremos con la función <code>ggR()</code> del paquete <strong>RStoolbox</strong>, la cual sigue la misma filosofía y grámatica de capas de <strong>ggplot2</strong>, y brinda salidas gráficas de excelente calidad (Figura 2).</p>
+<pre class="r"><code>library(RStoolbox)
+
+ggR(img = l8_b5, stretch = &quot;lin&quot;) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/PlotRaster-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 2. Visualización de datos ráster uni-banda.
+</p>
+<p>Una ruta similar se puede seguir para la lectura y visualización de ráster multi-banda, realizando la lectura de la escena con la función <code>stack()</code>. Además, la función <code>ggRGB()</code> de <strong>RStoolbox</strong> enriquece las visualizaciones generando composiciones RGB para resaltar atributos especifícos del territorio, como la vegetación, mediante la composición RGB <em>falso color estandar</em> con las bandas 5-4-3 de Landsat 8 OLI (Figura 3).</p>
+<pre class="r"><code>l8_stack &lt;- stack(x = &quot;C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/img/LC08_0852_20210104_Stack.tif&quot;)
+
+l8_stack</code></pre>
+<pre><code>## class      : RasterStack 
+## dimensions : 7711, 7551, 58225761, 7  (nrow, ncol, ncell, nlayers)
+## resolution : 30, 30  (x, y)
+## extent     : 615285, 841815, 1163385, 1394715  (xmin, xmax, ymin, ymax)
+## crs        : +proj=utm +zone=18 +datum=WGS84 +units=m +no_defs 
+## names      : LC08_0852_20210104_Stack.1, LC08_0852_20210104_Stack.2, LC08_0852_20210104_Stack.3, LC08_0852_20210104_Stack.4, LC08_0852_20210104_Stack.5, LC08_0852_20210104_Stack.6, LC08_0852_20210104_Stack.7 
+## min values :                          0,                          0,                          0,                          0,                          0,                          0,                          0 
+## max values :                      43805,                      45639,                      44737,                      44734,                      42108,                      34959,                      64463</code></pre>
+<pre class="r"><code>ggRGB(img = l8_stack, r = 5, g = 4, b = 3, stretch = &quot;none&quot;) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/PlotRasterRGB-1.png" width="672" style="display: block; margin: auto;" />
+<p align = "center">
+Figura 3. Visualización de datos ráster multi-banda.
+<p>
+<p>De la Figura 3, se observa la correcta composición RGB de la escena satelital. Así mismo, se observa el efecto de la atmósfera en la cantidad de energía reflejada desde la superficie terrestre que es capturada por los sensores, evidenciado por la presencia de tonalidaes grisaceas en la escena. Este efecto puede ser removido a través de correcciones atmosféricas, objeto de discusión en secciones siguientes.</p>
+</div>
+</div>
+<div id="geoprocesamiento-en-r" class="section level1">
+<h1>Geoprocesamiento en R</h1>
+<p>Durante el flujo de trabajo con datos espaciales, es comunmente necesario realizar alguna transformación u operación sobre los mismos con el objeto de responder a las preguntas planteadas sobre el fenómeno de estudio que se modela. En este sentido, las <strong>herramientas de geoprocesamiento</strong> se definen como el conjunto de procedimientos (algorítmos) implementados en los entornos de manipulación de datos espaciales que tienen como objetivo la transformación de estos y agregarles valor, o lo que se conoce en el argot de las ciencias geográficas como geo-información. Las herramientas de geoprocesamiento son diversas, por lo que pretender abordarlas en su totalidad es una tarea impensable, en especial porque día tras día surgen más y más complejas herramientas de análisis y transformación de datos. Sin embargo, para fines de contexto, se puede hacer una breve descripción de las herramientas de geoprocesamiento de uso más recurrente para datos espaciales vectoriales y ráster, y su aplicación en el entorno de R.</p>
+<div id="herramientas-de-geoprocesamiento-para-datos-vectoriales" class="section level2">
+<h2>Herramientas de geoprocesamiento para datos vectoriales</h2>
+<div id="recorte-crop" class="section level3">
+<h3>Recorte (crop)</h3>
+<p>En la manipulación de datos espaciales en R, el recorte esta orientado en realizar la extracción de los elementos dentro de una capa geográfica de cualquier geometría (punto, línea o polígono) que se encuentran dento de la extensión espacial (bounding box) de una capa poligonal de recorte. Su implementación en el entorno de R se realiza a través de la función <code>st_crop()</code> del paquete <strong>sf</strong>. Inciciaremos el geoprocesamiento con la lectura de las capas y la visualización de las mismas (Figura 4).</p>
+<pre class="r"><code>library(sf)
+library(tidyverse)
+library(nngeo)
+
+rios_guiajira &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Hidrografia_Guajira.shp&quot;)</code></pre>
+<pre><code>## Reading layer `Hidrografia_Guajira&#39; from data source 
+##   `C:\Users\Luis\Documents\Manipulacion analisis datos espaciales R\Datos\shp\Hidrografia_Guajira.shp&#39; 
+##   using driver `ESRI Shapefile&#39;
+## Simple feature collection with 1860 features and 13 fields
+## Geometry type: MULTILINESTRING
+## Dimension:     XY
+## Bounding box:  xmin: 1045108 ymin: 1644059 xmax: 1322769 ymax: 1868573
+## Projected CRS: MAGNA-SIRGAS / Colombia Bogota zone</code></pre>
+<pre class="r"><code>cuenca_RR &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Cuenca_RR.shp&quot;)</code></pre>
+<pre><code>## Reading layer `Cuenca_RR&#39; from data source 
+##   `C:\Users\Luis\Documents\Manipulacion analisis datos espaciales R\Datos\shp\Cuenca_RR.shp&#39; 
+##   using driver `ESRI Shapefile&#39;
+## Simple feature collection with 1 feature and 1 field
+## Geometry type: POLYGON
+## Dimension:     XY
+## Bounding box:  xmin: 1075693 ymin: 1661587 xmax: 1181887 ymax: 1775180
+## Projected CRS: MAGNA-SIRGAS / Colombia Bogota zone</code></pre>
+<pre class="r"><code>ggplot() +
+  geom_sf(data = rios_guiajira, color = &quot;blue&quot;) +
+  geom_sf(data = cuenca_RR, fill = NA, color = &quot;red&quot;) +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/InputCrop-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 4. Visualización de capa a recortar (red hidrográfica) y de recorte (cuenca del río Ranchería).
+</p>
+<p>A continuación se muestra la forma de utilizar la función <code>st_crop()</code> y su respectiva salida gráfica (Figura 5).</p>
+<pre class="r"><code>rio_cuenca_RR &lt;- st_crop(x = rios_guiajira, y = cuenca_RR)
+
+ggplot() +
+  geom_sf(data = cuenca_RR, fill = NA, color = &quot;red&quot;) +
+  geom_sf(data = rio_cuenca_RR, color = &quot;blue&quot;) +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/OutputCrop-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figira 5. Visualización de resultados del recorte.
+</p>
+</div>
+<div id="unión-spatial-join" class="section level3">
+<h3>Unión (spatial join)</h3>
+<p>La unión de datos espaciales en R puede ser abordada desde dos perspectivas: la primera en la que se hace un merge de todas las capas (contiguas), disolviendo las fronteras que existian previamente entre estas usando la función <code>st_union()</code>, y la segunda, en la que se hace merge de las capas de entrada, conservando los límites que las dividen usando la función <code>rbind()</code>. La principal diferencia entre estos métodos, es que el primero almacena un campo en la tabla de atributos de la capa resultante para cada una de las capas de entrada, mientras que el segundo almacena la información a manera de registros (filas). Para ejemplificar lo anterior, usaremos como capas de entradas, los límites de tres (3) cuencas hidrográficas del departamento de La Guajira que son objeto de ordenamiento en conjunto (Figura 6).</p>
+<pre class="r"><code>library(sf)
+library(tidyverse)
+library(nngeo)
+library(patchwork)
+
+c1 &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Cuenca_director_mar_caribe2.shp&quot;)</code></pre>
+<pre><code>## Reading layer `Cuenca_director_mar_caribe2&#39; from data source 
+##   `C:\Users\Luis\Documents\Manipulacion analisis datos espaciales R\Datos\shp\Cuenca_director_mar_caribe2.shp&#39; 
+##   using driver `ESRI Shapefile&#39;
+## Simple feature collection with 1 feature and 1 field
+## Geometry type: POLYGON
+## Dimension:     XY
+## Bounding box:  xmin: 1094343 ymin: 1737791 xmax: 1118492 ymax: 1755828
+## Projected CRS: MAGNA-SIRGAS / Colombia Bogota zone</code></pre>
+<pre class="r"><code>c2 &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Cuenca_director_mar_caribe3.shp&quot;)</code></pre>
+<pre><code>## Reading layer `Cuenca_director_mar_caribe3&#39; from data source 
+##   `C:\Users\Luis\Documents\Manipulacion analisis datos espaciales R\Datos\shp\Cuenca_director_mar_caribe3.shp&#39; 
+##   using driver `ESRI Shapefile&#39;
+## Simple feature collection with 1 feature and 1 field
+## Geometry type: MULTIPOLYGON
+## Dimension:     XY
+## Bounding box:  xmin: 1107589 ymin: 1746655 xmax: 1130819 ymax: 1769424
+## Projected CRS: MAGNA-SIRGAS / Colombia Bogota zone</code></pre>
+<pre class="r"><code>c3 &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Cuenca_rio_camarones.shp&quot;)</code></pre>
+<pre><code>## Reading layer `Cuenca_rio_camarones&#39; from data source 
+##   `C:\Users\Luis\Documents\Manipulacion analisis datos espaciales R\Datos\shp\Cuenca_rio_camarones.shp&#39; 
+##   using driver `ESRI Shapefile&#39;
+## Simple feature collection with 1 feature and 1 field
+## Geometry type: POLYGON
+## Dimension:     XY
+## Bounding box:  xmin: 1107603 ymin: 1710219 xmax: 1132805 ymax: 1755347
+## Projected CRS: MAGNA-SIRGAS / Colombia Bogota zone</code></pre>
+<pre class="r"><code>g1 &lt;- ggplot() + 
+  geom_sf(data = c1, fill = NA, color = &quot;red&quot;) +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()
+
+g2 &lt;- ggplot() +
+  geom_sf(data = c2, fill = NA, color = &quot;red&quot;) +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()
+
+g3 &lt;- ggplot() +
+  geom_sf(data = c3, fill = NA, color = &quot;red&quot;) +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()
+
+g1 | g2 | g3</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/Cuencas-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 6. Cuencas hidrográficas a unir.
+</p>
+<p>Usando el primer enfoque, la ruta de análisis a seguir se muestra a continuación (Figura 7):</p>
+<pre class="r"><code>cuencas &lt;- st_union(x = st_union(x = c1, y = c2), y = c3) %&gt;% 
+  st_remove_holes()
+
+ggplot() +
+  geom_sf(data = cuencas, fill = NA, color = &quot;red&quot;) +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/CuencasUnion1-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 7. Cuencas hidrográficas unidas (primer enfoque).
+</p>
+<p>Observese el uso de la función <code>st_remove_holes()</code> del paquete <strong>nngeo</strong> para suprimir la existencia de “huecos” en las salidas de resultados, un problema que se puede presentar en la manipulación de datos espaciales vectoriales en R.</p>
+<p>Abordando el problema desde el otro enfoque, el uso dela función <code>rbind()</code> permitirá generar un registro para cada capa de entrada en la tabla de atributos de la capa de salida (Figura 8):</p>
+<pre class="r"><code>cuencas1 &lt;- rbind(c1, c2, c3)
+
+ggplot() +
+  geom_sf(data = cuencas1, fill = NA, color = &quot;red&quot;) +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:CuencasUnion2"></span>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/CuencasUnion2-1.png" alt="Cuencas hidrográficas unidas (segundo enfoque)" width="672" />
+<p class="caption">
+Figure 1: Cuencas hidrográficas unidas (segundo enfoque)
+</p>
+</div>
+<p align="center">
+Figura 8. Cuencas hidrográficas unidas (primer enfoque).
+</p>
+</div>
+<div id="disolver" class="section level3">
+<h3>Disolver</h3>
+<p>La disolución en R esta dirigida a realizar agregaciones de los poligonos (registros) almacenados en una capa geográfica, obtenieno de esta forma un único registro como fusión de lo anteriores. Este herramienta se aplica fácilmente en R aplicando las funciones del paquete <strong>dplyr</strong> discutidas en secciones anteriores. Para ilustrarlo, trabajaremos con la capa de microcuencas del departamento de La Guajira (Figura 9), desde las cuales disolveremos su límites para obtener los poligonos de las cuencas a las que estas pertenecen (Figura 10).</p>
+<pre class="r"><code>microcuencas &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/MICROCUENCAS.shp&quot;)</code></pre>
+<pre><code>## Reading layer `Microcuencas&#39; from data source 
+##   `C:\Users\Luis\Documents\Manipulacion analisis datos espaciales R\Datos\shp\Microcuencas.shp&#39; 
+##   using driver `ESRI Shapefile&#39;
+## Simple feature collection with 143 features and 12 fields
+## Geometry type: MULTIPOLYGON
+## Dimension:     XY
+## Bounding box:  xmin: 1045091 ymin: 1641687 xmax: 1322905 ymax: 1870787
+## Projected CRS: MAGNA-SIRGAS / Colombia Bogota zone</code></pre>
+<pre class="r"><code>ggplot() +
+  geom_sf(data = microcuencas, fill = NA, color = &quot;red&quot;) +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/CuencaDissolve1-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 9. Microcuencas hidrográficas del departamento de La Guajira.
+</p>
+<pre class="r"><code>cuencas &lt;- microcuencas %&gt;% 
+  group_by(CUENCA) %&gt;% 
+  summarise() %&gt;% 
+  st_remove_holes()
+
+ggplot() +
+  geom_sf(data = cuencas, fill = NA, color = &quot;red&quot;) +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:CuencaDissolve2"></span>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/CuencaDissolve2-1.png" alt="Cuencas hidrográficas del departamento de La Guajira" width="672" />
+<p class="caption">
+Figure 2: Cuencas hidrográficas del departamento de La Guajira
+</p>
+</div>
+<p align="center">
+Figura 10. Microcuencas hidrográficas del departamento de La Guajira.
+</p>
+</div>
+<div id="intersección" class="section level3">
+<h3>Intersección</h3>
+<p>Antes, hemos discutido la forma en la que R a través del paquete <strong>sf</strong> realiza el recorte de una capa geográfica de acuerdo a la extensión espacial de un poligono superpuesto. No obatante, en muchas situaciones, el interés recae en realizar el recorte siguiendo los limites espaciales de la capa superpuesta (capa de recorte), es decir, donde existe interesección entre las capas; esta operación sobre la geometría de la capa objetivo, se realiza fácilmente en R mediante el uso de la función <code>st_intersection()</code>. Usaremos las mismas capas usadas en la aplicación de la capa <code>st_crop()</code> y generaremos una salida gráfica de la red de drenaje de la cuenca del río Ranchería (Figura 11).</p>
+<pre class="r"><code>rio_cuenca_RR &lt;- st_intersection(x = rios_guiajira, y = cuenca_RR)
+
+ggplot() +
+  geom_sf(data = cuenca_RR, fill = NA, color = &quot;red&quot;) +
+  geom_sf(data = rio_cuenca_RR, color = &quot;blue&quot;) +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/CuencaIntersect-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 11. Red hídrica de la cuenca del río Ranchería.
+</p>
+</div>
+<div id="zonas-de-influencia-buffer" class="section level3">
+<h3>Zonas de influencia (Buffer)</h3>
+<p>El objetivo de las zonas de influencia, como su nombre lo indica, es generar un área a partir de un elemento vectorial, una nueva capa que envuelve al elemento en una zona de influencia cuya distancia máxima es la indicada en el análisis. En R, esta operación se realiza a través de la función <code>st_buffer()</code> del paquete <strong>sf</strong>. Como ejemplo, supongamos que de la red hídrica de la cuenca del río Ranchería, se desea trazar un área de influencia a una distancia de 1000 metros de su cauce principal, usando las herramientas de filtrado del paquete <strong>dplyr</strong> y la función <code>st_buffer()</code>, esto se puede hacer de manera sencilla con unas pocas línea de código, con resultados gráficos excelentes (Figura 12)</p>
+<pre class="r"><code>rio_rancheria &lt;- rio_cuenca_RR %&gt;% 
+  filter(NOMBRE == &quot;Río Ranchería&quot;)
+
+buffer_RR &lt;- st_buffer(x = rio_rancheria, dist = 1000)
+
+ggplot() +
+  geom_sf(data = cuenca_RR, fill = NA, color = &quot;red&quot;) +
+  geom_sf(data = rio_rancheria, color = &quot;blue&quot;) +
+  geom_sf(data = buffer_RR, fill = &quot;cyan&quot;, color = NA, alpha = 0.5) +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/Buffer-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 12. Área de influencia de 1000 m del cauce del río Ranchería.
+</p>
+</div>
+</div>
+<div id="herramientas-de-geoprocesamiento-para-datos-ráster" class="section level2">
+<h2>Herramientas de geoprocesamiento para datos ráster</h2>
+<p>Con relación a la manipulación de datos ráster, hasta el momento solo hemos visto la forma en que estos son leidos en el entorno de R y su visualización cuando se trata de ráster unibanda (<code>ggR()</code>) o multibanda (<code>ggRGB()</code>). En esta sesión, revisaremos algunas funciones orientadas hacia la realización de transformaciones en este tipo de datos, especialmente aquellas de uso recurrente en la manipulación de datos ráster.</p>
+<div id="recorte" class="section level3">
+<h3>Recorte</h3>
+<p>Cuando tratamos con datos ráster, el recorte esto se puede realizar en dos vías: (1) en función del rectangulo extensión espacial (<em>bounding box</em>), generado por los cuatro pares de coordenadas más extremas (<span class="math inline">\(x_{min}, y_{min}; x_{min}, y_{max}; x_{max}, y_{max}; x_{max}, y_{min}\)</span>) de la capa poligonal de recorte; (2) siguiendo los límites geográficos representados por la capa poligonal de recorte. Para mayor entendimiento analizaremos un ejemplo de ambos casos. Considerese un modelo de elevación digital (DEM: <em>Digitla elevation model</em>) del departamento de La Guajira (Figura 13) y la capa poligonal de la divisoria de aguas de la cuenca del río Ranchería (Figura 1).</p>
+<pre class="r"><code>ggR(img = dem, stretch = &quot;lin&quot;) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/PlotDEM-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 13. Modelo de elevación digital del departamento de La Guajira.
+</p>
+<p>Para mejorar el entedimiento sobre los datos, la Figura 14 muestra la superposición de las capas que participan en este análisis.</p>
+<pre class="r"><code>ggR(img = dem, stretch = &quot;lin&quot;) +
+  geom_sf(data = cuenca_RR, fill = NA, color = &quot;purple&quot;) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/PlotDEMRR-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 14. Modelo de elevación digital y cuenca del rio Ranchería.
+</p>
+<p>Lo que buscamos es realizar el recorte del DEM usando como capa poligonal de recorte, los límites de la cuenca del rio Ranchería. El primer enfoque descrito, se materializa en el entorno de R con la función <code>crop()</code> del paquete <strong>raster</strong> (Figura 15).</p>
+<pre class="r"><code>cropdem &lt;- crop(x = dem, y = cuenca_RR)
+ggR(img = cropdem, stretch = &quot;lin&quot;) +
+  geom_sf(data = cuenca_RR, fill = NA, color = &quot;purple&quot;) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/CropDEM-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 15. Recorte DEM con la función <code>crop()</code>.
+</p>
+<p>En el segundo enfoque se hace uso de la función <code>mask()</code> del paquete <strong>raster</strong> (Figura 16).</p>
+<pre class="r"><code>maskdem &lt;- mask(x = cropdem, mask = cuenca_RR)
+ggR(img = maskdem, stretch = &quot;lin&quot;) +
+  geom_sf(data = cuenca_RR, fill = NA, color = &quot;purple&quot;) +
+  xlab(label = &quot;Este&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/MaskDEM-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 16. Recorte DEM con la función <code>mask()</code>
+</p>
+<p>Nótese las diferencias entre los dos enfoques descritos.</p>
+</div>
+<div id="proyección-project" class="section level3">
+<h3>Proyección (project)</h3>
+<p>Otra herramienta de uso recurrente en la manipulación de datos espaciales tipo ráster, es proyectarlos o migrarlos a un sistema de referencia espacial diferente. En ambos casos, el paquete <strong>raster</strong> nos ofrece la función <code>project()</code> para la realización de esta tarea. El paquete <strong>sf</strong>, también ofrece una función que aplica la proyección de datos vectoriales.</p>
+<p>Como ejemplo, veamos como se aplica esta función para migrar el DEM recostado usado en el ejemplo anterior, hacia el sistema de referencia WGS84.</p>
+<pre class="r"><code>maskdemwgs84 &lt;- projectRaster(from = maskdem, crs = &quot;+proj=longlat +datum=WGS84 +no_defs&quot;, method = &quot;bilinear&quot;)
+
+print(maskdemwgs84)</code></pre>
+<pre><code>## class      : RasterLayer 
+## dimensions : 3812, 3559, 13566908  (nrow, ncol, ncell)
+## resolution : 0.000275, 0.000271  (x, y)
+## extent     : -73.38721, -72.40849, 10.57261, 11.60566  (xmin, xmax, ymin, ymax)
+## crs        : +proj=longlat +datum=WGS84 +no_defs 
+## source     : memory
+## names      : DEM 
+## values     : -11, 4207.285  (min, max)</code></pre>
+</div>
+<div id="estadísticas-zonales-zonal-statistics" class="section level3">
+<h3>Estadísticas zonales (zonal statistics)</h3>
+<p>Una tarea interesante en el tratamiento de datos espaciales ráster, consiste en el cómputo de estadísticas para cada uno de los elementos de una capa vectorial, usualmente de tipo poligono. Por ejemplo, podriamos de un ráster que almacene en sus pixeles los valores de temperatura de la superficie terrestre (LST: <em>Land Surface Temperature</em>), determinar los valores medios de temperatura para cada microcuenca de la cuenca del rio Ranchería. Iniciaremos con la visualización de las capas (Figura 17).</p>
+<pre><code>## Reading layer `Microcuencas&#39; from data source 
+##   `C:\Users\Luis\Documents\Manipulacion analisis datos espaciales R\Datos\shp\Microcuencas.shp&#39; 
+##   using driver `ESRI Shapefile&#39;
+## Simple feature collection with 143 features and 12 fields
+## Geometry type: MULTIPOLYGON
+## Dimension:     XY
+## Bounding box:  xmin: 1045091 ymin: 1641687 xmax: 1322905 ymax: 1870787
+## Projected CRS: MAGNA-SIRGAS / Colombia Bogota zone</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/TempCuencasRR-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 17. Temperatura de la superficie terrestre (LST) y microcuencas de la cuenca del río Rancheria.
+</p>
+<p>Para estas capas, el cómputo de estadísticas zonales, en este caso los valores medios de temperatura (Tabla 2), obtienen de la ejecución de las siguientes líneas de código:</p>
+<pre class="r"><code>cuencas &lt;- cuencas %&gt;% 
+  mutate(id = 1:nrow(cuencas))
+
+cuencasR &lt;- rasterize(x = as(object = cuencas, Class = &quot;Spatial&quot;), y = lst, field = &quot;id&quot;)
+
+zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;% 
+  as_tibble() %&gt;% 
+  mutate(Subcuenca = cuencas$SUBCUENCA)</code></pre>
+<p>Nótese que inicialmente se agrega un <em>id</em> a cada una de las microcuencas y se rasterizó a partir de este la capa por exigencias de la función <code>zonal()</code> del paquete <strong>raster</strong>. Finalmente, se transforman los resultados a tabla con la función <code>as_tibble()</code> y se incluyen los nombres correspondiente a cada indicador.</p>
+<p>Tabla 2. Temperatura media de la superficie de la tierra para las microcuencas de la cuenca del río Ranchería.</p>
+<div id="otzlgubrzm" style="overflow-x:auto;overflow-y:auto;width:auto;height:500px;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#otzlgubrzm .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: 100%;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#otzlgubrzm .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#otzlgubrzm .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#otzlgubrzm .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#otzlgubrzm .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#otzlgubrzm .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#otzlgubrzm .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#otzlgubrzm .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#otzlgubrzm .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#otzlgubrzm .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#otzlgubrzm .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#otzlgubrzm .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#otzlgubrzm .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#otzlgubrzm .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#otzlgubrzm .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#otzlgubrzm .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#otzlgubrzm .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#otzlgubrzm .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#otzlgubrzm .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#otzlgubrzm .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#otzlgubrzm .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#otzlgubrzm .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#otzlgubrzm .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#otzlgubrzm .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#otzlgubrzm .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#otzlgubrzm .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#otzlgubrzm .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#otzlgubrzm .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#otzlgubrzm .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#otzlgubrzm .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#otzlgubrzm .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#otzlgubrzm .gt_left {
+  text-align: left;
+}
+
+#otzlgubrzm .gt_center {
+  text-align: center;
+}
+
+#otzlgubrzm .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#otzlgubrzm .gt_font_normal {
+  font-weight: normal;
+}
+
+#otzlgubrzm .gt_font_bold {
+  font-weight: bold;
+}
+
+#otzlgubrzm .gt_font_italic {
+  font-style: italic;
+}
+
+#otzlgubrzm .gt_super {
+  font-size: 65%;
+}
+
+#otzlgubrzm .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#otzlgubrzm .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#otzlgubrzm .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#otzlgubrzm .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#otzlgubrzm .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#otzlgubrzm .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">id</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Subcuenca</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">LST media</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">Rio Rancheria</td>
+<td class="gt_row gt_center">29.37032</td></tr>
+    <tr><td class="gt_row gt_center">2</td>
+<td class="gt_row gt_center">Brazo Jotomana</td>
+<td class="gt_row gt_center">29.18817</td></tr>
+    <tr><td class="gt_row gt_center">3</td>
+<td class="gt_row gt_center">Ay. Bruno</td>
+<td class="gt_row gt_center">29.19885</td></tr>
+    <tr><td class="gt_row gt_center">4</td>
+<td class="gt_row gt_center">Ay. Tabaco</td>
+<td class="gt_row gt_center">28.18255</td></tr>
+    <tr><td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">Ay. La Ceiba</td>
+<td class="gt_row gt_center">27.93583</td></tr>
+    <tr><td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">Ay. Cerrejon</td>
+<td class="gt_row gt_center">27.55108</td></tr>
+    <tr><td class="gt_row gt_center">7</td>
+<td class="gt_row gt_center">Ay. La Puente</td>
+<td class="gt_row gt_center">31.23201</td></tr>
+    <tr><td class="gt_row gt_center">8</td>
+<td class="gt_row gt_center">Ay. Prestamo</td>
+<td class="gt_row gt_center">30.41381</td></tr>
+    <tr><td class="gt_row gt_center">9</td>
+<td class="gt_row gt_center">Ay. Aguanueva</td>
+<td class="gt_row gt_center">32.22767</td></tr>
+    <tr><td class="gt_row gt_center">10</td>
+<td class="gt_row gt_center">Ay. Miliciano</td>
+<td class="gt_row gt_center">31.78393</td></tr>
+    <tr><td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">Ay. Morrocon</td>
+<td class="gt_row gt_center">31.48031</td></tr>
+    <tr><td class="gt_row gt_center">12</td>
+<td class="gt_row gt_center">Rio Palomino</td>
+<td class="gt_row gt_center">27.27432</td></tr>
+    <tr><td class="gt_row gt_center">13</td>
+<td class="gt_row gt_center">Rio Conejo</td>
+<td class="gt_row gt_center">29.50034</td></tr>
+    <tr><td class="gt_row gt_center">14</td>
+<td class="gt_row gt_center">Ay. La Quebrada</td>
+<td class="gt_row gt_center">27.27921</td></tr>
+    <tr><td class="gt_row gt_center">15</td>
+<td class="gt_row gt_center">Rio Cañaverales</td>
+<td class="gt_row gt_center">29.15462</td></tr>
+    <tr><td class="gt_row gt_center">16</td>
+<td class="gt_row gt_center">Rio Marocaso o Saurina</td>
+<td class="gt_row gt_center">26.57689</td></tr>
+    <tr><td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">Quebrada Agua Fria</td>
+<td class="gt_row gt_center">27.80191</td></tr>
+    <tr><td class="gt_row gt_center">18</td>
+<td class="gt_row gt_center">Ay. Shirraimahana</td>
+<td class="gt_row gt_center">30.66057</td></tr>
+    <tr><td class="gt_row gt_center">19</td>
+<td class="gt_row gt_center">Quebrada de Moreno</td>
+<td class="gt_row gt_center">30.26356</td></tr>
+    <tr><td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">Ay. La Ceiba</td>
+<td class="gt_row gt_center">30.52304</td></tr>
+    <tr><td class="gt_row gt_center">21</td>
+<td class="gt_row gt_center">Ay. Paladines</td>
+<td class="gt_row gt_center">30.87309</td></tr>
+    <tr><td class="gt_row gt_center">22</td>
+<td class="gt_row gt_center">Ay. Los Lazos</td>
+<td class="gt_row gt_center">33.43545</td></tr>
+    <tr><td class="gt_row gt_center">23</td>
+<td class="gt_row gt_center">Ay. Iguaran</td>
+<td class="gt_row gt_center">32.20554</td></tr>
+    <tr><td class="gt_row gt_center">24</td>
+<td class="gt_row gt_center">Ay. El Pasito</td>
+<td class="gt_row gt_center">32.08110</td></tr>
+    <tr><td class="gt_row gt_center">25</td>
+<td class="gt_row gt_center">Ay. Pozo Hondo</td>
+<td class="gt_row gt_center">30.88220</td></tr>
+    <tr><td class="gt_row gt_center">26</td>
+<td class="gt_row gt_center">Ay. Las Montañas</td>
+<td class="gt_row gt_center">30.31504</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p><br>
+Como se mencionó al tratar herramientas de geoprocesamiento para datos vectoriales, las discutidas en esta sesión no corresponden con la totalidad de las herramientas disponibles, solo representan las que a jucio del autor, son de uso más recurrente en el tratamiento de este tipo de datos. Con seguridad, en ejercicios posteriores se describirán unas cuantas más conforme exista la necesidad en el marco de una aplicación.</p>
+<p>Comunmente, el manejo de datos ráster remotamente capturados a través de las diferentes plataformas satelitales que orbitan nuestro planeta, requieren de la aplicación de ciertas correcciones de las señales recibidas por sus sensores con el objetivo de minimizar algunas distorsiones relacionadas con la curvatura de la Tierra y su heterogeneidad topográfica, fallos en los sensores mismos, e incluso, efectos añadidos por la presencia de diferentes gases en la atmósfera con la capacidad de interactuar con la radiación electromágnetica en cualquiera de los tres mecanismos conocidos (reflexión, absorción y refracción). A continuación, se describirá brevemente la aplicación de algunas de estas correcciones y su ejecución en el entorno de R.</p>
+</div>
+</div>
+<div id="correcciones-radiométricas" class="section level2">
+<h2>Correcciones radiométricas</h2>
+<p>Las correcciones radiométricas incluyen un conjunto de procedimientos que buscan homogenizar los valores de pixel de una imagen de satelite y de esta forma eliminar posibles distorsiones producidas por el movimiento (cabeceo) de la plataforma satelital, valores atípicos de radiación, ausencia de valores en algunos pixeles, aberraciones cromáticas o interferecncia atmosférica. En esta sesión concentraremos la discusión en esta última, siendo una corrección fundamental cuando deseamos trabajar con valores de reflectancia (unidad física) de energía desde la superficie terrestre, especialmente cuando se trabajan con imagenes (escenas) correpsondientes a diferentes fechas, periodo climátologico o misión de las cuales se derivan.</p>
+<p>En este sentido, son muchos y variados los procedimientos y/o algorítmos disponibles para llevar a cabo correcciones atmoféricas sobre imagenes de satelite, entre estos, uno de uso bastante distendido es el metodo <strong>DOS</strong> (<em>Dark Object Substraction</em>), que se enmarca dentro de los proedimientos basado en la información de la imagen misma y cuya aplicación consiste en la aplicación de cálculos simples que han sido empaquetados en diversas librerías (paquetes) de R, entre las que destaca el paquete <strong>RStoolbox</strong>. Sin profundizar en los detalles matemáticos, el método parte del supuesto que los píxeles oscuros en una tienen una reflectancia cero, de ahí el nombre. En ese sentido,supone además que cualquier radiación que se origine de dichos píxeles oscuros se debe a la “neblina” (<em>haze</em>) atmosférica y no a la reflectancia de la superficie en sí.</p>
+<p>Lo anterior, condiciona a la determinación de los valores <em>haze</em> para cada una de las bandas de la escena que se desea corregir. A continuación, ilustraremos este procedimiento con una escena Landsat 08 OLI/TIRS para el path/row 008052, correspondiente a la Media Guajira, adquirida el 16 de febrero del 2019 (Figura 18), esta se leerá a través de su archivo de metadatos (<em>.MTL</em>) desde el cual se extraerán datos a posteori, necesarios para la corrección, usando la función <code>readMeta()</code> del paquete <strong>RStoolbox</strong> y su conversión en un <em>stack</em> mediante la función <code>stackMeta()</code> del mismo paquete.</p>
+<pre class="r"><code>library(RStoolbox)
+meta &lt;- readMeta(file = &quot;C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/img/LST Landsat/LC08_L1TP_008052_20190216_20190222_01_T1/LC08_L1TP_008052_20190216_20190222_01_T1_MTL.txt&quot;)
+img &lt;- stackMeta(file = meta)</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/PlotL8MG-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 18. Escena satelital Landsat 08 OLI/TIRS path-row: 008052 (2019-02-16).
+</p>
+<p>Nótese la presencia de tonalidades grises en la escena que proporcionan poco contraste en los valores de reflectacia que se logran visualizar para las diferentes coberturas sobre la misma. Justo este efecto es el que se busca mitigar con la corrección atmosférica (Figura 19) ejecutada con el siguiente bloque de código.</p>
+<pre class="r"><code>haze &lt;- estimateHaze(img, hazeBands = 2:7, darkProp = 0.01)
+print(haze)</code></pre>
+<pre><code>## B2_dn B3_dn B4_dn B5_dn B6_dn B7_dn 
+##  7956  7185  6420  5830  5344  5211</code></pre>
+<pre class="r"><code>img_sdos &lt;- radCor(img, metaData = meta, method = &quot;sdos&quot;, hazeValues = haze, bandSet=2:7)
+print(img_sdos)</code></pre>
+<pre><code>## class      : RasterStack 
+## dimensions : 7711, 7551, 58225761, 6  (nrow, ncol, ncell, nlayers)
+## resolution : 30, 30  (x, y)
+## extent     : 616485, 843015, 1163385, 1394715  (xmin, xmax, ymin, ymax)
+## crs        : +proj=utm +zone=18 +datum=WGS84 +units=m +no_defs 
+## names      :    B2_sre,    B3_sre,    B4_sre,    B5_sre,    B6_sre,    B7_sre 
+## min values :         0,         0,         0,         0,         0,         0 
+## max values : 0.8877962, 0.9487305, 1.0000000, 1.0000000, 1.0000000, 1.0000000</code></pre>
+<p>Aquí, el objeto <em>haze</em> almacena los valores de pixel correspondientes a objetos oscuros estimados con la función <code>estimateHaze()</code> para las bandas visibles (azul, verde y rojo), infrarrojo cercano (NIR) e infrarrojo de onda corta (SWIR-1 y SWIR-2) del espectro electromanético, configuradas en el argumento <em>hazeBands</em>; el procentaje de pixeles oscuros que se asumen dentro de la escena se fija en 1%, como es especifica en el argumento <em>darkProp</em>. Finalmente, la función <code>radCor()</code>, ejecuta la corección atmosférica para el metodo especificado <em>sdos</em> (Simple Dark Object Substraction).</p>
+<pre class="r"><code>ggRGB(img = img_sdos, r = 3, g = 2, b = 1, stretch = &quot;lin&quot;, quantiles = c(0.005, 0.995)) +
+  labs(x = &quot;Este&quot;, y = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/PlotAtmCor-1.png" width="672" />
+<p align="center">
+Figura 19. Escena satelital Landsat 08 OLI/TIRS path-row: 008052 (2019-02-16) con corrección atmosférica.
+</p>
+<p>Nótese las diferencias en contraste, respecto a la imagen original. Además, observese los valores de los pixeles de cada banda, en la escena resultante, los valores de pixel se encuentran en el intervalo de 0 a 1 (reflectancias).</p>
+</div>
+</div>

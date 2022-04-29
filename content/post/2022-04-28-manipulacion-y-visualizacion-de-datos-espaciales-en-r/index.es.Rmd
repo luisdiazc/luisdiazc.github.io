@@ -1,0 +1,533 @@
+---
+title: Manipulación y visualización de datos espaciales en R
+author: ''
+date: '2022-04-28'
+slug: manipulacion-y-visualizacion-de-datos-espaciales-en-r
+categories: []
+tags: []
+subtitle: ''
+summary: ''
+authors: []
+lastmod: '2022-04-28T17:55:36-05:00'
+featured: no
+image:
+  caption: ''
+  focal_point: ''
+  preview_only: no
+projects: []
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(gt)
+library(tidyverse)
+
+```
+
+# Manipulación y visualización de datos espaciales en R
+
+Hasta el momento hemos enfocado la discusión en las potencialidades y funcionalidades ofrecidas por R para la manipulación y visualización de datos comunes al proceso de captura de datos de cualquier disciplina. En esta sección, ampliaremos el flujo de trabajo hacia los datos espaciales, un tipo especial de datos que mediante arreglos rectangulaes, además de contener información alfanumerica, también almacenan información relativa a su localización en el espacio, es decir, su referencia espacial; posibilitando que los análisis que se deriven de estos sean espacial o geográficamente explicitos.
+
+De forma genérica, los datos espaciales son una forma de representar la realidad del territorio y sus complejidades. Para ello, existes dos formas de almacenamiento de la información espacial: vectorial y ráster. Los datos vectoriales representan el mundo a través de puntos,líneas o polígonos, dependiendo del elemento a representar y la escala de trabajo. Por su parte, los datos ráster, dividen el continuo de la superficie a modelar en pequeñas celdas (pixeles) de tamaño constante donde se almacena la información inherente a elemento representado, es decir, representan la superficie estudiada a través de la construcción de areglos rectangulates (filas y columnas), donde en cada celda se almacena la información de la misma. 
+
+R, posee poderosas librerías para la manipulación de datos espaciales, siendo de uso más generalizado las librerías **sf** (_simple feature_) para datos vectoriales y **raster** para datos ráster. A continuación veremos la forma en que cada una de estas librerías es usada.
+
+# Lectura de datos espaciales
+
+## Lectura de datos vectoriales 
+
+Los datos espaciales de tipo vectorial se encuentran en una amplia variedad de formatos. Dentro de estos, el formato _shapefile_, es el más popular en la comunidad de usuarios de datos espaciales. En R, la lectura de este tipo de datos se hace mediante la función `st_read()` del paquete **sf**, como se muestra a continuación:
+
+```{r CodeReadSf, warning = FALSE, error = FALSE, message = FALSE}
+
+library(sf)
+
+punto <- st_read(dsn = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Est_met_rio_Rancheria.shp")
+
+linea <- st_read(dsn = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Hidrografia_rio_Rancheria.shp")
+
+poligono <- st_read(dsn = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Cuenca_rio_Rancheria.shp")
+
+```
+
+Observese que se utilizó la función `st_read()`, para realizar la lectura de tres capas vectoriales correspondientes a las geometrías que representa: puntos, líneas y poligonos. La lectura de cada archivo, imprime en consola información del encabezado relacionada con su formato de almacenamiento, dimensiones y sistema de referencia en el que este se encuentra.
+
+Cada una de estas capas  almacena información alfanumerica en una tabla de atributos subyacente. Podemos ver los primeros registros (Tabla 1) a través de la siguiente línea de código:
+
+```{r CodeHeadSf, echo = FALSE, results = 'hide'}
+
+head(x = punto, n = 10)
+
+```
+
+Tabla 1. Primeros 10 registros de tabla de atributos de datos verctorial tipo punto.
+```{r TablePuntos, echo = FALSE, results = 'asis'}
+
+gt(data = head(x = punto, n = 10)) %>% 
+  tab_options(container.height = px(x = 500), container.overflow.y = TRUE, table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold") %>% 
+  cols_align(align = "center")
+
+```
+
+<br>
+La información contenida en esta tabla se puede manipular siguiendo el flujo de trabajo presentado en secciones anteriores con apoyo en las funciones del paquete **dplyr**, teniendo como característica distintiva la presencia de un campo donde se almacena la información espacial, comunmente llamado `geometry`. Además, se pueden aprovechar las potencialidades de visualización del paquete **ggplot2** para hacer las representaciones de este tipo de datos y crear mapas realmente interesantes y apropiados para publicaciones científicas. A continuación, usaremos la función `geom_sf()` para representar los datos vectoriales leidos en líneas de código anteriores (Figura 1).
+
+```{r PlotVector, message = FALSE, error = FALSE, warning = FALSE, fig.align = 'center', fig.retina = 5}
+
+ggplot(data = poligono) +
+  geom_sf(color = "purple", fill = NA) +
+  geom_sf(data = linea, color = "blue") +
+  geom_sf(data = punto, color = "red") +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  coord_sf(datum = st_crs(3116)) +
+  theme_bw()
+```
+<p align = "center">Figura 1. Estaciones meteorológicas en la cuenca del rio Ranchería.</p>
+
+## Lectura de datos ráster
+
+Los datos espaciales tipo ráster, al igual que los datos vectoriales, se distribuyen en una amplia variedad de formatos, la mayoría de estos (si no la totalidad), se encuentran soportados para su lectura en R con la función `raster()` del paquete **raster**. Para ilustrarlo, se realizará la lectura de una imagen satelital Landsat 8 OLI, correspondiente al la banda del azul del espectro electromágnetico.
+
+
+```{r CodeReadRaster, message = FALSE, warning = FALSE, error = FALSE}
+
+library(raster)
+
+l8_b5 <- raster(x = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/img/LC08_L1TP_008052_20210104_20210309_01_T1/LC08_L1TP_008052_20210104_20210309_01_T1_B5.TIF")
+
+l8_b5
+
+```
+
+Al imprimir el objeto ráster, R nos muestra en el encabezado información inherente del mismo, como sus dimensiones (número de columnas, filas y pixeles), resolución espacial (tamaño de pixel), sistema de referencia espacial, ruta de almacenamiento (en disco o memoria), extensión expacial (_bounding box_), nombre del archivo y valores mínimos y máximos almacenados dentro del raster (rango de valores de pixel). Note que las imagenes Landsat 8, al encontrarse codificadas en una resolución radiométrica de 16 bits, almacenan sus valores de pixel en el rango de 0 a 65535 niveles de grises.
+
+En términos de visualización, el paquete **raster** contiene por defecto la función de `plot()`, sin embargo, esta no ofrece riqueza en la visualización. Como alternativa, trabajaremos con la función `ggR()` del paquete **RStoolbox**, la cual sigue la misma filosofía y grámatica de capas de **ggplot2**, y brinda salidas gráficas de excelente calidad (Figura 2).
+
+```{r PlotRaster, message = FALSE, error = FALSE, warning = FALSE, fig.align = 'center', results = 'asis', fig.retina = 5}
+
+library(RStoolbox)
+
+ggR(img = l8_b5, stretch = "lin") +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 2. Visualización de datos ráster uni-banda.</p>
+
+Una ruta similar se puede seguir para la lectura y visualización de ráster multi-banda, realizando la lectura de la escena con la función `stack()`. Además, la función `ggRGB()` de **RStoolbox** enriquece las visualizaciones generando composiciones RGB para resaltar atributos especifícos del territorio, como la vegetación, mediante la composición RGB _falso color estandar_ con las bandas 5-4-3 de Landsat 8 OLI (Figura 3).
+
+```{r CodeReadRasterRGB, message = FALSE, error = FALSE, warning = FALSE}
+
+l8_stack <- stack(x = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/img/LC08_0852_20210104_Stack.tif")
+
+l8_stack
+
+
+```
+
+```{r PlotRasterRGB, message = FALSE, error = FALSE, warning = FALSE, fig.align = 'center', results = 'asis', fig.retina = 5}
+
+ggRGB(img = l8_stack, r = 5, g = 4, b = 3, stretch = "none") +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 3. Visualización de datos ráster multi-banda.<p>
+
+De la Figura 3, se observa la correcta composición RGB de la escena satelital. Así mismo, se observa el efecto de la atmósfera en la cantidad de energía reflejada desde la superficie terrestre que es capturada por los sensores, evidenciado por la presencia de tonalidaes grisaceas en la escena. Este efecto puede ser removido a través de correcciones atmosféricas, objeto de discusión en secciones siguientes.
+
+# Geoprocesamiento en R
+
+Durante el flujo de trabajo con datos espaciales, es comunmente necesario realizar alguna transformación u operación sobre los mismos con el objeto de responder a las preguntas planteadas sobre el fenómeno de estudio que se modela. En este sentido, las **herramientas de geoprocesamiento** se definen como el conjunto de procedimientos (algorítmos) implementados en los entornos de manipulación de datos espaciales que tienen como objetivo la transformación de estos y agregarles valor, o lo que se conoce en el argot de las ciencias geográficas como geo-información. Las herramientas de geoprocesamiento son diversas, por lo que pretender abordarlas en su totalidad es una tarea impensable, en especial porque día tras día surgen más y más complejas herramientas de análisis y transformación de datos. Sin embargo, para fines de contexto, se puede hacer una breve descripción de las herramientas de geoprocesamiento de uso más recurrente para datos espaciales vectoriales y ráster, y su aplicación en el entorno de R.
+
+## Herramientas de geoprocesamiento para datos vectoriales
+
+### Recorte (crop)
+
+En la manipulación de datos espaciales en R, el recorte esta orientado en realizar la extracción de los elementos dentro de una capa geográfica de cualquier geometría (punto, línea o polígono) que se encuentran dento de la extensión espacial (bounding box) de una capa poligonal de recorte. Su implementación en el entorno de R se realiza a través de la función `st_crop()` del paquete **sf**. Inciciaremos el geoprocesamiento con la lectura de las capas y la visualización de las mismas (Figura 4).
+
+```{r InputCrop, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, fig.align = 'center'}
+
+library(sf)
+library(tidyverse)
+library(nngeo)
+
+rios_guiajira <- st_read(dsn = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Hidrografia_Guajira.shp")
+cuenca_RR <- st_read(dsn = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Cuenca_RR.shp")
+
+ggplot() +
+  geom_sf(data = rios_guiajira, color = "blue") +
+  geom_sf(data = cuenca_RR, fill = NA, color = "red") +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 4. Visualización de capa a recortar (red hidrográfica) y de recorte (cuenca del río Ranchería).</p>
+
+A continuación se muestra la forma de utilizar la función `st_crop()` y su respectiva salida gráfica (Figura 5).
+
+```{r OutputCrop, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, fig.align = 'center'}
+
+rio_cuenca_RR <- st_crop(x = rios_guiajira, y = cuenca_RR)
+
+ggplot() +
+  geom_sf(data = cuenca_RR, fill = NA, color = "red") +
+  geom_sf(data = rio_cuenca_RR, color = "blue") +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+```
+<p align = "center"> Figira 5. Visualización de resultados del recorte. </p>
+
+### Unión (spatial join)
+
+La unión de datos espaciales en R puede ser abordada desde dos perspectivas: la primera en la que se hace un merge de todas las capas (contiguas), disolviendo las fronteras que existian previamente entre estas usando la función `st_union()`, y la segunda, en la que se hace merge de las capas de entrada, conservando los límites que las dividen usando la función `rbind()`. La principal diferencia entre estos métodos, es que el primero almacena un campo en la tabla de atributos de la capa resultante para cada una de las capas de entrada, mientras que el segundo almacena la información a manera de registros (filas). Para ejemplificar lo anterior, usaremos como capas de entradas, los límites de tres (3) cuencas hidrográficas del departamento de La Guajira que son objeto de ordenamiento en conjunto (Figura 6).
+
+```{r Cuencas, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, fig.align = 'center'}
+
+library(sf)
+library(tidyverse)
+library(nngeo)
+library(patchwork)
+
+c1 <- st_read(dsn = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Cuenca_director_mar_caribe2.shp")
+c2 <- st_read(dsn = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Cuenca_director_mar_caribe3.shp")
+c3 <- st_read(dsn = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Cuenca_rio_camarones.shp")
+
+g1 <- ggplot() + 
+  geom_sf(data = c1, fill = NA, color = "red") +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+g2 <- ggplot() +
+  geom_sf(data = c2, fill = NA, color = "red") +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+g3 <- ggplot() +
+  geom_sf(data = c3, fill = NA, color = "red") +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+g1 | g2 | g3
+
+```
+<p align = "center">Figura 6. Cuencas hidrográficas a unir.</p>
+
+Usando el primer enfoque, la ruta de análisis a seguir se muestra a continuación (Figura 7):
+
+```{r CuencasUnion1, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, fig.align = 'center'}
+
+cuencas <- st_union(x = st_union(x = c1, y = c2), y = c3) %>% 
+  st_remove_holes()
+
+ggplot() +
+  geom_sf(data = cuencas, fill = NA, color = "red") +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+ 
+```
+<p align = "center">Figura 7. Cuencas hidrográficas unidas (primer enfoque).</p>
+
+Observese el uso de la función `st_remove_holes()` del paquete **nngeo** para suprimir la existencia de "huecos" en las salidas de resultados, un problema que se puede presentar en la manipulación de datos espaciales vectoriales en R.
+
+Abordando el problema desde el otro enfoque, el uso dela función `rbind()` permitirá generar un registro para cada capa de entrada en la tabla de atributos de la capa de salida (Figura 8):
+
+```{r CuencasUnion2, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, fig.align = 'center', fig.cap = "Cuencas hidrográficas unidas (segundo enfoque)"}
+
+cuencas1 <- rbind(c1, c2, c3)
+
+ggplot() +
+  geom_sf(data = cuencas1, fill = NA, color = "red") +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 8. Cuencas hidrográficas unidas (primer enfoque).</p>
+
+### Disolver 
+
+La disolución en R esta dirigida a realizar agregaciones de los poligonos (registros) almacenados en una capa geográfica, obtenieno de esta forma un único registro como fusión de lo anteriores. Este herramienta se aplica fácilmente en R aplicando las funciones del paquete **dplyr** discutidas en secciones anteriores. Para ilustrarlo, trabajaremos con la capa de microcuencas del departamento de La Guajira (Figura 9), desde las cuales disolveremos su límites para obtener los poligonos de las cuencas a las que estas pertenecen (Figura 10).
+
+```{r CuencaDissolve1, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, fig.align = 'center'}
+
+microcuencas <- st_read(dsn = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/MICROCUENCAS.shp")
+
+ggplot() +
+  geom_sf(data = microcuencas, fill = NA, color = "red") +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 9. Microcuencas hidrográficas del departamento de La Guajira.</p>
+
+```{r CuencaDissolve2, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, fig.align = 'center', fig.cap = "Cuencas hidrográficas del departamento de La Guajira"}
+
+cuencas <- microcuencas %>% 
+  group_by(CUENCA) %>% 
+  summarise() %>% 
+  st_remove_holes()
+
+ggplot() +
+  geom_sf(data = cuencas, fill = NA, color = "red") +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 10. Microcuencas hidrográficas del departamento de La Guajira.</p>
+
+### Intersección
+
+Antes, hemos discutido la forma en la que R a través del paquete **sf** realiza el recorte de una capa geográfica de acuerdo a la extensión espacial de un poligono superpuesto. No obatante, en muchas situaciones, el interés recae en realizar el recorte siguiendo los limites espaciales de la capa superpuesta (capa de recorte), es decir, donde existe interesección entre las capas; esta operación sobre la geometría de la capa objetivo, se realiza fácilmente en R mediante el uso de la función `st_intersection()`. Usaremos las mismas capas usadas en la aplicación de la capa `st_crop()` y generaremos una salida gráfica de la red de drenaje de la cuenca del río Ranchería (Figura 11).
+
+
+```{r CuencaIntersect, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, fig.align = 'center'}
+
+rio_cuenca_RR <- st_intersection(x = rios_guiajira, y = cuenca_RR)
+
+ggplot() +
+  geom_sf(data = cuenca_RR, fill = NA, color = "red") +
+  geom_sf(data = rio_cuenca_RR, color = "blue") +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 11. Red hídrica de la cuenca del río Ranchería.</p>
+
+### Zonas de influencia (Buffer)
+
+El objetivo de las zonas de influencia, como su nombre lo indica, es generar un área a partir de un elemento vectorial, una nueva capa que envuelve al elemento en una zona de influencia cuya distancia máxima es la indicada en el análisis. En R, esta operación se realiza a través de la función `st_buffer()` del paquete **sf**. Como ejemplo, supongamos que de la red hídrica de la cuenca del río Ranchería, se desea trazar un área de influencia a una distancia de 1000 metros de su cauce principal, usando las herramientas de filtrado del paquete **dplyr** y la función `st_buffer()`, esto se puede hacer de manera sencilla con unas pocas línea de código, con resultados gráficos excelentes (Figura 12)
+
+```{r Buffer, echo = TRUE, error = FALSE, warning = FALSE, message = FALSE, fig.align = 'center'}
+
+rio_rancheria <- rio_cuenca_RR %>% 
+  filter(NOMBRE == "Río Ranchería")
+
+buffer_RR <- st_buffer(x = rio_rancheria, dist = 1000)
+
+ggplot() +
+  geom_sf(data = cuenca_RR, fill = NA, color = "red") +
+  geom_sf(data = rio_rancheria, color = "blue") +
+  geom_sf(data = buffer_RR, fill = "cyan", color = NA, alpha = 0.5) +
+  coord_sf(datum = st_crs(3116)) +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 12. Área de influencia de 1000 m del cauce del río Ranchería.</p>
+
+## Herramientas de geoprocesamiento para datos ráster 
+
+Con relación a la manipulación de datos ráster, hasta el momento solo hemos visto la forma en que estos son leidos en el entorno de R y su visualización cuando se trata de ráster unibanda (`ggR()`) o multibanda (`ggRGB()`). En esta sesión, revisaremos algunas funciones orientadas hacia la realización de transformaciones en este tipo de datos, especialmente aquellas de uso recurrente en la manipulación de datos ráster.
+
+### Recorte
+
+Cuando tratamos con datos ráster, el recorte esto se puede realizar en dos vías: (1) en función del rectangulo extensión espacial (_bounding box_), generado por los cuatro pares de coordenadas más extremas ($x_{min}, y_{min}; x_{min}, y_{max}; x_{max}, y_{max}; x_{max}, y_{min}$) de la capa poligonal de recorte; (2) siguiendo los límites geográficos representados por la capa poligonal de recorte. Para mayor entendimiento analizaremos un ejemplo de ambos casos. Considerese un modelo de elevación digital (DEM: _Digitla elevation model_) del departamento de La Guajira (Figura 13) y la capa poligonal de la divisoria de aguas de la cuenca del río Ranchería (Figura 1).
+
+```{r CodeDEM, echo = FALSE, results = 'hide'}
+
+dem <- raster(x = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/img/DEM/DEM.tif")
+
+cuenca_RR <- sf::st_read(dsn = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Cuenca_rio_Rancheria.shp")
+
+```
+
+```{r PlotDEM, echo = TRUE, results = 'asis', warning = FALSE, message = FALSE, fig.align = 'center'}
+
+ggR(img = dem, stretch = "lin") +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 13. Modelo de elevación digital del departamento de La Guajira.</p>
+
+Para mejorar el entedimiento sobre los datos, la Figura 14 muestra la superposición de las capas que participan en este análisis. 
+
+```{r PlotDEMRR, echo = TRUE, results = 'asis', warning = FALSE, message = FALSE, fig.align = 'center'}
+
+ggR(img = dem, stretch = "lin") +
+  geom_sf(data = cuenca_RR, fill = NA, color = "purple") +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 14. Modelo de elevación digital y cuenca del rio Ranchería.</p>
+
+Lo que buscamos es realizar el recorte del DEM usando como capa poligonal de recorte, los límites de la cuenca del rio Ranchería. El primer enfoque descrito, se materializa en el entorno de R con la función `crop()` del paquete **raster** (Figura 15).
+
+```{r CropDEM, echo = TRUE, results = 'asis', fig.align = 'center', warning = FALSE, message = FALSE}
+
+cropdem <- crop(x = dem, y = cuenca_RR)
+ggR(img = cropdem, stretch = "lin") +
+  geom_sf(data = cuenca_RR, fill = NA, color = "purple") +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 15. Recorte DEM con la función `crop()`.</p>
+
+En el segundo enfoque se hace uso de la función `mask()` del paquete **raster** (Figura 16).
+
+```{r MaskDEM, echo = TRUE, results = 'asis', fig.align = 'center', warning = FALSE, message = FALSE}
+
+maskdem <- mask(x = cropdem, mask = cuenca_RR)
+ggR(img = maskdem, stretch = "lin") +
+  geom_sf(data = cuenca_RR, fill = NA, color = "purple") +
+  xlab(label = "Este") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 16. Recorte DEM con la función `mask()`</p>
+
+Nótese las diferencias entre los dos enfoques descritos.
+
+### Proyección (project)
+
+Otra herramienta de uso recurrente en la manipulación de datos espaciales tipo ráster, es proyectarlos o migrarlos a un sistema de referencia espacial diferente. En ambos casos, el paquete **raster** nos ofrece la función `project()` para la realización de esta tarea. El paquete **sf**, también ofrece una función que aplica la proyección de datos vectoriales.
+
+Como ejemplo, veamos como se aplica esta función para migrar el DEM recostado usado en el ejemplo anterior, hacia el sistema de referencia WGS84.
+
+```{r demwgs84, echo = TRUE, results = 'markup'}
+
+maskdemwgs84 <- projectRaster(from = maskdem, crs = "+proj=longlat +datum=WGS84 +no_defs", method = "bilinear")
+
+print(maskdemwgs84)
+
+```
+
+### Estadísticas zonales (zonal statistics)
+
+Una tarea interesante en el tratamiento de datos espaciales ráster, consiste en el cómputo de estadísticas para cada uno de los elementos de una capa vectorial, usualmente de tipo poligono. Por ejemplo, podriamos de un ráster que almacene en sus pixeles los valores de temperatura de la superficie terrestre (LST: _Land Surface Temperature_), determinar los valores medios de temperatura para cada microcuenca de la cuenca del rio Ranchería. Iniciaremos con la visualización de las capas (Figura 17).
+
+```{r TempCuencasRR, echo = FALSE, results = 'markup', fig.align = 'center', message = FALSE, warning = FALSE}
+
+lst <- raster(x = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/img/LST cuenca rio Rancheria.tif")
+
+cuencas <- st_read(dsn = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/Microcuencas.shp") %>% 
+  filter(CUENCA == "Río Rancheria") %>% 
+  st_transform(crs = st_crs(lst))
+
+ggR(img = lst, geom_raster = TRUE) +
+  scale_fill_distiller(palette = "RdBu", type = "seq", name = "LST (ºC)") +
+  geom_sf(data = cuencas, color = "purple", fill = NA) +
+  labs(x = "Este", y = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 17. Temperatura de la superficie terrestre (LST) y microcuencas de la cuenca del río Rancheria.</p>
+
+Para estas capas, el cómputo de estadísticas zonales, en este caso los valores medios de temperatura (Tabla 2), obtienen de la ejecución de las siguientes líneas de código:
+
+```{r CodeZonalStat, echo = TRUE, results = 'asis'}
+
+cuencas <- cuencas %>% 
+  mutate(id = 1:nrow(cuencas))
+
+cuencasR <- rasterize(x = as(object = cuencas, Class = "Spatial"), y = lst, field = "id")
+
+zonal_stat <- raster::zonal(x = lst, z = cuencasR, fun = mean) %>% 
+  as_tibble() %>% 
+  mutate(Subcuenca = cuencas$SUBCUENCA)
+
+```
+
+Nótese que inicialmente se agrega un _id_ a cada una de las microcuencas y se rasterizó a partir de este la capa por exigencias de la función `zonal()` del paquete **raster**. Finalmente, se transforman los resultados a tabla con la función `as_tibble()` y se incluyen los nombres correspondiente a cada indicador.
+
+Tabla 2. Temperatura media de la superficie de la tierra para las microcuencas de la cuenca del río Ranchería.
+```{r TableZonalStat, echo = FALSE, results = 'asis', warning = FALSE, message = FALSE}
+
+zonal_stat <- zonal_stat %>% 
+  dplyr::select(zone, Subcuenca, value) %>% 
+  rename(id = zone, `LST media` = value)
+
+gt(data = zonal_stat) %>% 
+  tab_options(container.height = px(x = 500), container.overflow.y = TRUE, table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold") %>% 
+  cols_align(align = "center")
+
+```
+
+<br>
+Como se mencionó al tratar herramientas de geoprocesamiento para datos vectoriales, las discutidas en esta sesión no corresponden con la totalidad de las herramientas disponibles, solo representan las que a jucio del autor, son de uso más recurrente en el tratamiento de este tipo de datos. Con seguridad, en ejercicios posteriores se describirán unas cuantas más conforme exista la necesidad en el marco de una aplicación.
+
+Comunmente, el manejo de datos ráster remotamente capturados a través de las diferentes plataformas satelitales que orbitan nuestro planeta, requieren de la aplicación de ciertas correcciones de las señales recibidas por sus sensores con el objetivo de minimizar algunas distorsiones relacionadas con la curvatura de la Tierra y su heterogeneidad topográfica, fallos en los sensores mismos, e incluso, efectos añadidos por la presencia de diferentes gases en la atmósfera con la capacidad de interactuar con la radiación electromágnetica en cualquiera de los tres mecanismos conocidos (reflexión, absorción y refracción). A continuación, se describirá brevemente la aplicación de algunas de estas correcciones y su ejecución en el entorno de R.
+
+## Correcciones radiométricas
+
+Las correcciones radiométricas incluyen un conjunto de procedimientos que buscan homogenizar los valores de pixel de una imagen de satelite y de esta forma eliminar posibles distorsiones producidas por el movimiento (cabeceo) de la plataforma satelital, valores atípicos de radiación, ausencia de valores en algunos pixeles, aberraciones cromáticas o interferecncia atmosférica. En esta sesión concentraremos la discusión en esta última, siendo una corrección fundamental cuando deseamos trabajar con valores de reflectancia (unidad física) de energía desde la superficie terrestre, especialmente cuando se trabajan con imagenes (escenas) correpsondientes a diferentes fechas, periodo climátologico o misión de las cuales se derivan.
+
+En este sentido, son muchos y variados los procedimientos y/o algorítmos disponibles para llevar a cabo correcciones atmoféricas sobre imagenes de satelite, entre estos, uno de uso bastante distendido es el metodo **DOS** (_Dark Object Substraction_), que se enmarca dentro de los proedimientos basado en la información de la imagen misma y cuya aplicación consiste en la aplicación de cálculos simples que han sido empaquetados en diversas librerías (paquetes) de R, entre las que destaca el paquete **RStoolbox**. Sin profundizar en los detalles matemáticos, el método parte del supuesto que los píxeles oscuros en una tienen una reflectancia cero, de ahí el nombre. En ese sentido,supone además que cualquier radiación que se origine de dichos píxeles oscuros se debe a la "neblina" (_haze_) atmosférica y no a la reflectancia de la superficie en sí.
+
+Lo anterior, condiciona a la determinación de los valores _haze_ para cada una de las bandas de la escena que se desea corregir. A continuación, ilustraremos este procedimiento con una escena Landsat 08 OLI/TIRS para el path/row 008052, correspondiente a la Media Guajira, adquirida el 16 de febrero del 2019 (Figura 18), esta se leerá a través de su archivo de metadatos (_.MTL_) desde el cual se extraerán datos a posteori, necesarios para la corrección, usando la función `readMeta()` del paquete **RStoolbox** y su conversión en un _stack_ mediante la función `stackMeta()` del mismo paquete.
+
+```{r CodeL8MG, echo = TRUE, results = 'asis', warning = FALSE, message = FALSE}
+
+library(RStoolbox)
+meta <- readMeta(file = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/img/LST Landsat/LC08_L1TP_008052_20190216_20190222_01_T1/LC08_L1TP_008052_20190216_20190222_01_T1_MTL.txt")
+img <- stackMeta(file = meta)
+
+```
+
+```{r PlotL8MG, echo = FALSE, results = 'hide', warning = FALSE, message = FALSE, fig.align = 'center'}
+
+ggRGB(img = img, r = 4, g = 3, b = 2, stretch = "lin", quantiles = c(0.005, 0.995)) +
+  labs(x = "Este", y = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 18. Escena satelital Landsat 08 OLI/TIRS path-row: 008052 (2019-02-16).</p>
+
+Nótese la presencia de tonalidades grises en la escena que proporcionan poco contraste en los valores de reflectacia que se logran visualizar para las diferentes coberturas sobre la misma. Justo este efecto es el que se busca mitigar con la corrección atmosférica (Figura 19) ejecutada con el siguiente bloque de código.
+
+```{r CodeAtmCor, echo = TRUE, results = 'markup', warning = FALSE, message = FALSE}
+
+haze <- estimateHaze(img, hazeBands = 2:7, darkProp = 0.01)
+print(haze)
+img_sdos <- radCor(img, metaData = meta, method = "sdos", hazeValues = haze, bandSet=2:7)
+print(img_sdos)
+
+```
+
+Aquí, el objeto _haze_ almacena los valores de pixel correspondientes a objetos oscuros estimados con la función `estimateHaze()` para las bandas visibles (azul, verde y rojo), infrarrojo cercano (NIR) e infrarrojo de onda corta (SWIR-1 y SWIR-2) del espectro electromanético, configuradas en el argumento _hazeBands_; el procentaje de pixeles oscuros que se asumen dentro de la escena se fija en 1%, como es especifica en el argumento _darkProp_. Finalmente, la función `radCor()`, ejecuta la corección atmosférica para el metodo especificado _sdos_ (Simple Dark Object Substraction).
+
+```{r PlotAtmCor, echo = TRUE, results = 'asis', warning = FALSE, message = FALSE}
+
+ggRGB(img = img_sdos, r = 3, g = 2, b = 1, stretch = "lin", quantiles = c(0.005, 0.995)) +
+  labs(x = "Este", y = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 19. Escena satelital Landsat 08 OLI/TIRS path-row: 008052 (2019-02-16) con corrección atmosférica.</p>
+
+Nótese las diferencias en contraste, respecto a la imagen original. Además, observese los valores de los pixeles de cada banda, en la escena resultante, los valores de pixel se encuentran en el intervalo de 0 a 1 (reflectancias).
+
+
+
