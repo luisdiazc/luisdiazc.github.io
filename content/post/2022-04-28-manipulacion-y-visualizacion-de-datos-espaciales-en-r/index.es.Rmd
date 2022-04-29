@@ -3,8 +3,16 @@ title: Manipulación y visualización de datos espaciales en R
 author: ''
 date: '2022-04-28'
 slug: manipulacion-y-visualizacion-de-datos-espaciales-en-r
-categories: []
-tags: []
+categories:
+  - R
+tags:
+  - R
+  - Data Science
+  - Statistic
+  - plot
+  - ggplot
+  - rspatial
+  - Spatial Analyst
 subtitle: ''
 summary: ''
 authors: []

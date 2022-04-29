@@ -3,8 +3,16 @@ title: Manipulación y visualización de datos espaciales en R
 author: ''
 date: '2022-04-28'
 slug: manipulacion-y-visualizacion-de-datos-espaciales-en-r
-categories: []
-tags: []
+categories:
+  - R
+tags:
+  - R
+  - Data Science
+  - Statistic
+  - plot
+  - ggplot
+  - rspatial
+  - Spatial Analyst
 subtitle: ''
 summary: ''
 authors: []
@@ -62,12 +70,12 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
 <p>Observese que se utilizó la función <code>st_read()</code>, para realizar la lectura de tres capas vectoriales correspondientes a las geometrías que representa: puntos, líneas y poligonos. La lectura de cada archivo, imprime en consola información del encabezado relacionada con su formato de almacenamiento, dimensiones y sistema de referencia en el que este se encuentra.</p>
 <p>Cada una de estas capas almacena información alfanumerica en una tabla de atributos subyacente. Podemos ver los primeros registros (Tabla 1) a través de la siguiente línea de código:</p>
 <p>Tabla 1. Primeros 10 registros de tabla de atributos de datos verctorial tipo punto.</p>
-<div id="njokfydvbn" style="overflow-x:auto;overflow-y:auto;width:auto;height:500px;">
+<div id="xypmnlxnef" style="overflow-x:auto;overflow-y:auto;width:auto;height:500px;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#njokfydvbn .gt_table {
+#xypmnlxnef .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -92,7 +100,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   border-left-color: #D3D3D3;
 }
 
-#njokfydvbn .gt_heading {
+#xypmnlxnef .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -104,7 +112,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   border-right-color: #D3D3D3;
 }
 
-#njokfydvbn .gt_title {
+#xypmnlxnef .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -116,7 +124,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   border-bottom-width: 0;
 }
 
-#njokfydvbn .gt_subtitle {
+#xypmnlxnef .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -128,13 +136,13 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   border-top-width: 0;
 }
 
-#njokfydvbn .gt_bottom_border {
+#xypmnlxnef .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#njokfydvbn .gt_col_headings {
+#xypmnlxnef .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -149,7 +157,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   border-right-color: #D3D3D3;
 }
 
-#njokfydvbn .gt_col_heading {
+#xypmnlxnef .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -169,7 +177,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   overflow-x: hidden;
 }
 
-#njokfydvbn .gt_column_spanner_outer {
+#xypmnlxnef .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -181,15 +189,15 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   padding-right: 4px;
 }
 
-#njokfydvbn .gt_column_spanner_outer:first-child {
+#xypmnlxnef .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#njokfydvbn .gt_column_spanner_outer:last-child {
+#xypmnlxnef .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#njokfydvbn .gt_column_spanner {
+#xypmnlxnef .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -201,7 +209,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   width: 100%;
 }
 
-#njokfydvbn .gt_group_heading {
+#xypmnlxnef .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -226,7 +234,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   vertical-align: middle;
 }
 
-#njokfydvbn .gt_empty_group_heading {
+#xypmnlxnef .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -241,15 +249,15 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   vertical-align: middle;
 }
 
-#njokfydvbn .gt_from_md > :first-child {
+#xypmnlxnef .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#njokfydvbn .gt_from_md > :last-child {
+#xypmnlxnef .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#njokfydvbn .gt_row {
+#xypmnlxnef .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -268,7 +276,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   overflow-x: hidden;
 }
 
-#njokfydvbn .gt_stub {
+#xypmnlxnef .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -281,7 +289,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   padding-right: 5px;
 }
 
-#njokfydvbn .gt_stub_row_group {
+#xypmnlxnef .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -295,11 +303,11 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   vertical-align: top;
 }
 
-#njokfydvbn .gt_row_group_first td {
+#xypmnlxnef .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#njokfydvbn .gt_summary_row {
+#xypmnlxnef .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -309,16 +317,16 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   padding-right: 5px;
 }
 
-#njokfydvbn .gt_first_summary_row {
+#xypmnlxnef .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#njokfydvbn .gt_first_summary_row.thick {
+#xypmnlxnef .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#njokfydvbn .gt_last_summary_row {
+#xypmnlxnef .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -328,7 +336,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   border-bottom-color: #D3D3D3;
 }
 
-#njokfydvbn .gt_grand_summary_row {
+#xypmnlxnef .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -338,7 +346,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   padding-right: 5px;
 }
 
-#njokfydvbn .gt_first_grand_summary_row {
+#xypmnlxnef .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -348,11 +356,11 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   border-top-color: #D3D3D3;
 }
 
-#njokfydvbn .gt_striped {
+#xypmnlxnef .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#njokfydvbn .gt_table_body {
+#xypmnlxnef .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -361,7 +369,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   border-bottom-color: #D3D3D3;
 }
 
-#njokfydvbn .gt_footnotes {
+#xypmnlxnef .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -375,7 +383,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   border-right-color: #D3D3D3;
 }
 
-#njokfydvbn .gt_footnote {
+#xypmnlxnef .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -384,7 +392,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   padding-right: 5px;
 }
 
-#njokfydvbn .gt_sourcenotes {
+#xypmnlxnef .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -398,7 +406,7 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   border-right-color: #D3D3D3;
 }
 
-#njokfydvbn .gt_sourcenote {
+#xypmnlxnef .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -406,36 +414,36 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   padding-right: 5px;
 }
 
-#njokfydvbn .gt_left {
+#xypmnlxnef .gt_left {
   text-align: left;
 }
 
-#njokfydvbn .gt_center {
+#xypmnlxnef .gt_center {
   text-align: center;
 }
 
-#njokfydvbn .gt_right {
+#xypmnlxnef .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#njokfydvbn .gt_font_normal {
+#xypmnlxnef .gt_font_normal {
   font-weight: normal;
 }
 
-#njokfydvbn .gt_font_bold {
+#xypmnlxnef .gt_font_bold {
   font-weight: bold;
 }
 
-#njokfydvbn .gt_font_italic {
+#xypmnlxnef .gt_font_italic {
   font-style: italic;
 }
 
-#njokfydvbn .gt_super {
+#xypmnlxnef .gt_super {
   font-size: 65%;
 }
 
-#njokfydvbn .gt_two_val_uncert {
+#xypmnlxnef .gt_two_val_uncert {
   display: inline-block;
   line-height: 1em;
   text-align: right;
@@ -444,31 +452,31 @@ punto &lt;- st_read(dsn = &quot;C:/Users/Luis/Documents/Manipulacion analisis da
   margin-left: 0.1em;
 }
 
-#njokfydvbn .gt_footnote_marks {
+#xypmnlxnef .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#njokfydvbn .gt_asterisk {
+#xypmnlxnef .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#njokfydvbn .gt_slash_mark {
+#xypmnlxnef .gt_slash_mark {
   font-size: 0.7em;
   line-height: 0.7em;
   vertical-align: 0.15em;
 }
 
-#njokfydvbn .gt_fraction_numerator {
+#xypmnlxnef .gt_fraction_numerator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: 0.45em;
 }
 
-#njokfydvbn .gt_fraction_denominator {
+#xypmnlxnef .gt_fraction_denominator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: -0.05em;
@@ -1172,12 +1180,12 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   mutate(Subcuenca = cuencas$SUBCUENCA)</code></pre>
 <p>Nótese que inicialmente se agrega un <em>id</em> a cada una de las microcuencas y se rasterizó a partir de este la capa por exigencias de la función <code>zonal()</code> del paquete <strong>raster</strong>. Finalmente, se transforman los resultados a tabla con la función <code>as_tibble()</code> y se incluyen los nombres correspondiente a cada indicador.</p>
 <p>Tabla 2. Temperatura media de la superficie de la tierra para las microcuencas de la cuenca del río Ranchería.</p>
-<div id="otzlgubrzm" style="overflow-x:auto;overflow-y:auto;width:auto;height:500px;">
+<div id="kzghvgkxzq" style="overflow-x:auto;overflow-y:auto;width:auto;height:500px;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#otzlgubrzm .gt_table {
+#kzghvgkxzq .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -1202,7 +1210,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   border-left-color: #D3D3D3;
 }
 
-#otzlgubrzm .gt_heading {
+#kzghvgkxzq .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -1214,7 +1222,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   border-right-color: #D3D3D3;
 }
 
-#otzlgubrzm .gt_title {
+#kzghvgkxzq .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -1226,7 +1234,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   border-bottom-width: 0;
 }
 
-#otzlgubrzm .gt_subtitle {
+#kzghvgkxzq .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -1238,13 +1246,13 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   border-top-width: 0;
 }
 
-#otzlgubrzm .gt_bottom_border {
+#kzghvgkxzq .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#otzlgubrzm .gt_col_headings {
+#kzghvgkxzq .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1259,7 +1267,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   border-right-color: #D3D3D3;
 }
 
-#otzlgubrzm .gt_col_heading {
+#kzghvgkxzq .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1279,7 +1287,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   overflow-x: hidden;
 }
 
-#otzlgubrzm .gt_column_spanner_outer {
+#kzghvgkxzq .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1291,15 +1299,15 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   padding-right: 4px;
 }
 
-#otzlgubrzm .gt_column_spanner_outer:first-child {
+#kzghvgkxzq .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#otzlgubrzm .gt_column_spanner_outer:last-child {
+#kzghvgkxzq .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#otzlgubrzm .gt_column_spanner {
+#kzghvgkxzq .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -1311,7 +1319,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   width: 100%;
 }
 
-#otzlgubrzm .gt_group_heading {
+#kzghvgkxzq .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1336,7 +1344,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   vertical-align: middle;
 }
 
-#otzlgubrzm .gt_empty_group_heading {
+#kzghvgkxzq .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -1351,15 +1359,15 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   vertical-align: middle;
 }
 
-#otzlgubrzm .gt_from_md > :first-child {
+#kzghvgkxzq .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#otzlgubrzm .gt_from_md > :last-child {
+#kzghvgkxzq .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#otzlgubrzm .gt_row {
+#kzghvgkxzq .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1378,7 +1386,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   overflow-x: hidden;
 }
 
-#otzlgubrzm .gt_stub {
+#kzghvgkxzq .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1391,7 +1399,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   padding-right: 5px;
 }
 
-#otzlgubrzm .gt_stub_row_group {
+#kzghvgkxzq .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1405,11 +1413,11 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   vertical-align: top;
 }
 
-#otzlgubrzm .gt_row_group_first td {
+#kzghvgkxzq .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#otzlgubrzm .gt_summary_row {
+#kzghvgkxzq .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1419,16 +1427,16 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   padding-right: 5px;
 }
 
-#otzlgubrzm .gt_first_summary_row {
+#kzghvgkxzq .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#otzlgubrzm .gt_first_summary_row.thick {
+#kzghvgkxzq .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#otzlgubrzm .gt_last_summary_row {
+#kzghvgkxzq .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1438,7 +1446,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   border-bottom-color: #D3D3D3;
 }
 
-#otzlgubrzm .gt_grand_summary_row {
+#kzghvgkxzq .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1448,7 +1456,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   padding-right: 5px;
 }
 
-#otzlgubrzm .gt_first_grand_summary_row {
+#kzghvgkxzq .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1458,11 +1466,11 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   border-top-color: #D3D3D3;
 }
 
-#otzlgubrzm .gt_striped {
+#kzghvgkxzq .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#otzlgubrzm .gt_table_body {
+#kzghvgkxzq .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1471,7 +1479,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   border-bottom-color: #D3D3D3;
 }
 
-#otzlgubrzm .gt_footnotes {
+#kzghvgkxzq .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1485,7 +1493,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   border-right-color: #D3D3D3;
 }
 
-#otzlgubrzm .gt_footnote {
+#kzghvgkxzq .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -1494,7 +1502,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   padding-right: 5px;
 }
 
-#otzlgubrzm .gt_sourcenotes {
+#kzghvgkxzq .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1508,7 +1516,7 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   border-right-color: #D3D3D3;
 }
 
-#otzlgubrzm .gt_sourcenote {
+#kzghvgkxzq .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -1516,36 +1524,36 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   padding-right: 5px;
 }
 
-#otzlgubrzm .gt_left {
+#kzghvgkxzq .gt_left {
   text-align: left;
 }
 
-#otzlgubrzm .gt_center {
+#kzghvgkxzq .gt_center {
   text-align: center;
 }
 
-#otzlgubrzm .gt_right {
+#kzghvgkxzq .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#otzlgubrzm .gt_font_normal {
+#kzghvgkxzq .gt_font_normal {
   font-weight: normal;
 }
 
-#otzlgubrzm .gt_font_bold {
+#kzghvgkxzq .gt_font_bold {
   font-weight: bold;
 }
 
-#otzlgubrzm .gt_font_italic {
+#kzghvgkxzq .gt_font_italic {
   font-style: italic;
 }
 
-#otzlgubrzm .gt_super {
+#kzghvgkxzq .gt_super {
   font-size: 65%;
 }
 
-#otzlgubrzm .gt_two_val_uncert {
+#kzghvgkxzq .gt_two_val_uncert {
   display: inline-block;
   line-height: 1em;
   text-align: right;
@@ -1554,31 +1562,31 @@ zonal_stat &lt;- raster::zonal(x = lst, z = cuencasR, fun = mean) %&gt;%
   margin-left: 0.1em;
 }
 
-#otzlgubrzm .gt_footnote_marks {
+#kzghvgkxzq .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#otzlgubrzm .gt_asterisk {
+#kzghvgkxzq .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#otzlgubrzm .gt_slash_mark {
+#kzghvgkxzq .gt_slash_mark {
   font-size: 0.7em;
   line-height: 0.7em;
   vertical-align: 0.15em;
 }
 
-#otzlgubrzm .gt_fraction_numerator {
+#kzghvgkxzq .gt_fraction_numerator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: 0.45em;
 }
 
-#otzlgubrzm .gt_fraction_denominator {
+#kzghvgkxzq .gt_fraction_denominator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: -0.05em;
