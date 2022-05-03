@@ -1,0 +1,176 @@
+---
+title: Mapeo de cifras de contagio por COVID-19 en Colombia
+author: Luis Díaz Chávez
+date: '2022-05-02'
+slug: mapeo-de-cifras-de-contagio-por-covid-19-en-colombia
+categories:
+  - R
+tags:
+  - Data Science
+  - R
+  - Statistic
+  - Spatial Analyst
+  - rspatial
+  - ggplot
+  - plot
+subtitle: ''
+summary: ''
+authors: []
+lastmod: '2022-05-02T23:14:26-05:00'
+featured: no
+image:
+  caption: ''
+  focal_point: ''
+  preview_only: no
+projects: []
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(gt)
+library(tidyverse)
+
+```
+
+Desde diciembre del 2019 hasta el presente, el mundo se ha visto afectado por una nueva pandemia suscitada por la expansión del coronavirus SAR-Cov 2, responsable de la COVID-19, una infección respiratoria aguda que ha cobrado la vida de millones de personas en el término de los últimos tres (3) años. Colombia, declaró la emergencia sanitaria por COVID-19 en marzo del 2020 cuando se empezaron registrar los primeros casos de contagio. Desde entonces, el Instituto Nacional de Salud (INS) ha mantenido actualizada la base de datos abierta sobre las cifras contagios a nivel país.
+
+Lo anterior ha permititido, desde el punto de vista de la análitica de datos, conocer la evolución de la pandemia y las características de las misma que permitan desde el punto de vista operativo de la misma tomar decisiones basadas en el los patrones exhibidos por los datos.
+
+Desde el punto de vista espacial, se pueden generar reportes cartográficos que permitan dilusidar que zonas del pais se encuentran más afectadas por la pandemía, analizar sus patrones y tendencias espaciales. A continuación, realizaremos un ejercicio de mapeo de las cifras totales de contagios de COVID-19 para Colombia a nivel de departamentos a corte del 03 de abril de 2022. Usaremos el el lenguaje de programación R para tales proposito.
+
+Iniciaremos con la lectura de la base de datos del INS de cifras de contagio por COVID-19, que se muestra en la Tabla 1.
+
+```{r, echo = TRUE, message = FALSE, warning = FALSE}
+
+library(sf) # manipulación de datos espaciales 
+library(tidyverse) # Manipulación de datos ordenados (tidy)
+library(RColorBrewer) # Construcción de paletas de colores para visualización
+library(ggspatial) # Adiciona elementos cartográficos (flecha de norte, escala gráfica)
+library(ggrepel) # Agraga etiquetas a elementos espaciales.
+
+covid19 <- read_csv(file = "C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/Casos positivos COVID-19 Colombia.csv")
+
+```
+
+Tabla 1. Cifras de contagio por COVID-19 en Colombia. Primeros 100 registros.
+```{r, echo = FALSE}
+
+gt(data = covid19[1:100,]) %>% 
+  tab_options(container.height = px(x = 500), container.overflow.y = TRUE, table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold") %>% 
+  cols_align(align = "center")
+
+```
+
+<br>
+Además, leeemos la capa geográfica de límites territoriales de los departamentos de Colombia (Figura 1), cuyos atributos se muestra en la Tabla 2.
+
+```{r, echo = TRUE, fig.align = 'center'}
+
+dpto <- read_sf("C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/MGN_DPTO_POLITICO.shp")
+
+ggplot() +
+  geom_sf(data = dpto) +
+  xlab(label = "Oeste") +
+  ylab(label = "Norte") +
+  theme_bw()
+
+```
+<p align = "center">Figura 1. Límites departamentales de Colombia.</p>
+
+Tabla 2. Atributos de la capa de departamentos de Colombia.
+```{r, echo = FALSE}
+
+gt(data = st_drop_geometry(dpto)) %>% 
+  tab_options(container.height = px(x = 500), container.overflow.y = TRUE, table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold") %>% 
+  cols_align(align = "center")
+
+```
+
+Luego, realizamos el conteo de contagios por departamento (Tabla 3), siguiendo las la ruta usada en post anteriores, como se muestra a continuación.
+
+```{r, echo = TRUE}
+
+covid19dpto <- covid19 %>% 
+  select(`Código DIVIPOLA departamento`, `Nombre departamento`) %>% 
+  rename(Cod_DANE = `Código DIVIPOLA departamento`, Departamento = `Nombre departamento`) %>% 
+  mutate(Cod_DANE = str_replace(string = Cod_DANE, pattern = "001", replacement = ""),
+         Cod_DANE = as.character(Cod_DANE),
+         Cod_DANE = if_else(condition = nchar(Cod_DANE) == 1, 
+                            true = paste0(0,Cod_DANE), 
+                            false = Cod_DANE)) %>% 
+  group_by(Cod_DANE) %>% 
+  summarise(Contagios = n()) %>% 
+  ungroup()
+
+```
+
+Tabla 3. Totales de contagios por COVID-19 para cada departamento de Colombia.
+```{r, echo = FALSE}
+
+gt(data = covid19dpto) %>% 
+  tab_options(container.height = px(x = 500), container.overflow.y = TRUE, table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold") %>% 
+  cols_align(align = "center")
+
+```
+
+<br>
+Note que como novedad que se uso la función `str_replace()` para encontrar aquellos códigos de la sivisión politico-administrativa (Cod_DANE) con terminación en 001, es decir, aquelos que corresponden a los distritos de Barranquilla (8001), Santa Marta (47001) y Cartagena (13001) para remover estas terminaciones; posteriormente se conviertieron en caracter y finalmente, mediante un condicional, se agregó un cero (0) a la izquiera a auellos códigos con solo un caracter. Todo esto para darle el mismo formato que posee el mismo código en la capa vectorial.
+
+Luego se realiza un _spatial join_ entre la tabla de contagios totales por COVID-19 en cada departamento y la tabla de atributos de la capa vecctorial de los límites administrativos Tabla 4, mediante la función `inner_join()`.
+
+```{r, echo = TRUE}
+
+covid19col <- inner_join(x = dpto, y = covid19dpto, by = c('DPTO_CCDGO' = 'Cod_DANE'))
+
+```
+
+Tabla 4. Join entre tabla de contagios totales por COVID-19 en cada departamento y la tabla de atributos de la capa vectorial de los límites administrativos.
+```{r, echo = FALSE}
+
+gt(data = st_drop_geometry(covid19col)) %>% 
+  tab_options(container.height = px(x = 500), container.overflow.y = TRUE, table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold") %>% 
+  cols_align(align = "center")
+
+```
+
+<br>
+Posteriormente, se extraen las coordenadas de los centroides de cade departamento, para propositos de ubicación de etiquetas en el mapa, siguiendo las siguientes líneas de código.
+
+```{r, echo = TRUE}
+
+ctd <- st_coordinates(st_centroid(covid19col)) %>% 
+  as_tibble()
+ctd$Dpto <- covid19col$DPTO_CNMBR
+ctd$Contagios <- covid19col$Contagios
+
+```
+
+Finalmente se genera el mapa de contagios de contagios totales de COVID-19 para cada departamento de Colombia, con las funcionalidades del paquete **ggplot2** (Figura 3), agregando los elementos discutidos en otros post y algunos nuevos que por intuición se puede conocer que aspecto configuran del gráfico.
+
+```{r, echo = TRUE, fig.align = 'center', fig.height = 7, fig.width = 5.5}
+
+ggplot() +
+  geom_sf(data = covid19col, mapping = aes(fill = Contagios)) +
+  scale_fill_gradientn(name = "No.total \n de contagios", 
+                       colours = brewer.pal(n = 9, name = "Reds"), 
+                       na.value = "white", n.breaks = 9) +
+  annotation_north_arrow(location = "tr", 
+                         which_north = "true", 
+                         style = north_arrow_fancy_orienteering) + 
+  annotation_scale(location = "bl") +
+  geom_text_repel(data = ctd, 
+                  mapping = aes(x = X, y = Y, label = paste(Dpto, "\n", Contagios)), 
+                  size = 2, 
+                  bg.color = "white", 
+                  bg.r = 0.05, 
+                  max.overlaps = 30) +
+  labs(title = "TOTAL DE CONTAGIOS DE COVID-19 EN COLOMBIA", 
+       caption = "Datos del Instituto Nacional de Salud (INS). \n Corte al 33 de abril de 2022", 
+       x = "Oeste", y = "Norte") +
+  theme_bw() +
+  theme(legend.position = "bottom", 
+        legend.key.width = unit(x = 4, units = "line"))
+
+```
+<p align = "center">Figura 3. Total de contagios por COVID-19 en Colombia.</p>

@@ -1,0 +1,4772 @@
+---
+title: Mapeo de cifras de contagio por COVID-19 en Colombia
+author: Luis Díaz Chávez
+date: '2022-05-02'
+slug: mapeo-de-cifras-de-contagio-por-covid-19-en-colombia
+categories:
+  - R
+tags:
+  - Data Science
+  - R
+  - Statistic
+  - Spatial Analyst
+  - rspatial
+  - ggplot
+  - plot
+subtitle: ''
+summary: ''
+authors: []
+lastmod: '2022-05-02T23:14:26-05:00'
+featured: no
+image:
+  caption: ''
+  focal_point: ''
+  preview_only: no
+projects: []
+---
+
+
+
+<p>Desde diciembre del 2019 hasta el presente, el mundo se ha visto afectado por una nueva pandemia suscitada por la expansión del coronavirus SAR-Cov 2, responsable de la COVID-19, una infección respiratoria aguda que ha cobrado la vida de millones de personas en el término de los últimos tres (3) años. Colombia, declaró la emergencia sanitaria por COVID-19 en marzo del 2020 cuando se empezaron registrar los primeros casos de contagio. Desde entonces, el Instituto Nacional de Salud (INS) ha mantenido actualizada la base de datos abierta sobre las cifras contagios a nivel país.</p>
+<p>Lo anterior ha permititido, desde el punto de vista de la análitica de datos, conocer la evolución de la pandemia y las características de las misma que permitan desde el punto de vista operativo de la misma tomar decisiones basadas en el los patrones exhibidos por los datos.</p>
+<p>Desde el punto de vista espacial, se pueden generar reportes cartográficos que permitan dilusidar que zonas del pais se encuentran más afectadas por la pandemía, analizar sus patrones y tendencias espaciales. A continuación, realizaremos un ejercicio de mapeo de las cifras totales de contagios de COVID-19 para Colombia a nivel de departamentos a corte del 03 de abril de 2022. Usaremos el el lenguaje de programación R para tales proposito.</p>
+<p>Iniciaremos con la lectura de la base de datos del INS de cifras de contagio por COVID-19, que se muestra en la Tabla 1.</p>
+<pre class="r"><code>library(sf) # manipulación de datos espaciales 
+library(tidyverse) # Manipulación de datos ordenados (tidy)
+library(RColorBrewer) # Construcción de paletas de colores para visualización
+library(ggspatial) # Adiciona elementos cartográficos (flecha de norte, escala gráfica)
+library(ggrepel) # Agraga etiquetas a elementos espaciales.
+
+covid19 &lt;- read_csv(file = &quot;C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/Casos positivos COVID-19 Colombia.csv&quot;)</code></pre>
+<p>Tabla 1. Cifras de contagio por COVID-19 en Colombia. Primeros 100 registros.</p>
+<div id="ivcxhherlb" style="overflow-x:auto;overflow-y:auto;width:auto;height:500px;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#ivcxhherlb .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: 100%;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#ivcxhherlb .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#ivcxhherlb .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#ivcxhherlb .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#ivcxhherlb .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ivcxhherlb .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#ivcxhherlb .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#ivcxhherlb .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#ivcxhherlb .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#ivcxhherlb .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#ivcxhherlb .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#ivcxhherlb .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#ivcxhherlb .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#ivcxhherlb .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#ivcxhherlb .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#ivcxhherlb .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#ivcxhherlb .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ivcxhherlb .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#ivcxhherlb .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#ivcxhherlb .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ivcxhherlb .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#ivcxhherlb .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#ivcxhherlb .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ivcxhherlb .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ivcxhherlb .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#ivcxhherlb .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#ivcxhherlb .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ivcxhherlb .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#ivcxhherlb .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ivcxhherlb .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#ivcxhherlb .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ivcxhherlb .gt_left {
+  text-align: left;
+}
+
+#ivcxhherlb .gt_center {
+  text-align: center;
+}
+
+#ivcxhherlb .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#ivcxhherlb .gt_font_normal {
+  font-weight: normal;
+}
+
+#ivcxhherlb .gt_font_bold {
+  font-weight: bold;
+}
+
+#ivcxhherlb .gt_font_italic {
+  font-style: italic;
+}
+
+#ivcxhherlb .gt_super {
+  font-size: 65%;
+}
+
+#ivcxhherlb .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#ivcxhherlb .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#ivcxhherlb .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#ivcxhherlb .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#ivcxhherlb .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#ivcxhherlb .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">fecha reporte web</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">ID de caso</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Fecha de notificación</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Código DIVIPOLA departamento</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Nombre departamento</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Código DIVIPOLA municipio</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Nombre municipio</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Edad</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Unidad de medida de edad</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Sexo</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Tipo de contagio</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Ubicación del caso</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Estado</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Código ISO del país</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Nombre del país</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Recuperado</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Fecha de inicio de síntomas</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Fecha de muerte</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Fecha de diagnóstico</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Fecha de recuperación</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Tipo de recuperación</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Pertenencia étnica</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Nombre del grupo étnico</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_center">2021-03-04</td>
+<td class="gt_row gt_center">2265685</td>
+<td class="gt_row gt_center">2021-03-02</td>
+<td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">BOGOTA</td>
+<td class="gt_row gt_center">11001</td>
+<td class="gt_row gt_center">BOGOTA</td>
+<td class="gt_row gt_center">49</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-02-25</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-03-03</td>
+<td class="gt_row gt_center">2021-03-16</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-03-04</td>
+<td class="gt_row gt_center">2265686</td>
+<td class="gt_row gt_center">2021-03-02</td>
+<td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">BOGOTA</td>
+<td class="gt_row gt_center">11001</td>
+<td class="gt_row gt_center">BOGOTA</td>
+<td class="gt_row gt_center">49</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-02-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-03-03</td>
+<td class="gt_row gt_center">2021-03-16</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-03-04</td>
+<td class="gt_row gt_center">2265687</td>
+<td class="gt_row gt_center">2021-03-02</td>
+<td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">BOGOTA</td>
+<td class="gt_row gt_center">11001</td>
+<td class="gt_row gt_center">BOGOTA</td>
+<td class="gt_row gt_center">51</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-02-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-03-03</td>
+<td class="gt_row gt_center">2021-03-16</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-03-04</td>
+<td class="gt_row gt_center">2265688</td>
+<td class="gt_row gt_center">2021-03-02</td>
+<td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">BOGOTA</td>
+<td class="gt_row gt_center">11001</td>
+<td class="gt_row gt_center">BOGOTA</td>
+<td class="gt_row gt_center">51</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-02-27</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-03-03</td>
+<td class="gt_row gt_center">2021-03-13</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-03-04</td>
+<td class="gt_row gt_center">2265689</td>
+<td class="gt_row gt_center">2021-03-02</td>
+<td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">BOGOTA</td>
+<td class="gt_row gt_center">11001</td>
+<td class="gt_row gt_center">BOGOTA</td>
+<td class="gt_row gt_center">51</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-03-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-03-03</td>
+<td class="gt_row gt_center">2021-03-16</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-03-04</td>
+<td class="gt_row gt_center">2265690</td>
+<td class="gt_row gt_center">2021-03-02</td>
+<td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">BOGOTA</td>
+<td class="gt_row gt_center">11001</td>
+<td class="gt_row gt_center">BOGOTA</td>
+<td class="gt_row gt_center">52</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-02-26</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-03-03</td>
+<td class="gt_row gt_center">2021-03-16</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851419</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">52</td>
+<td class="gt_row gt_center">NARIÑO</td>
+<td class="gt_row gt_center">52227</td>
+<td class="gt_row gt_center">CUMBAL</td>
+<td class="gt_row gt_center">24</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-14</td>
+<td class="gt_row gt_center">2021-01-26</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">PASTO</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851420</td>
+<td class="gt_row gt_center">2021-01-11</td>
+<td class="gt_row gt_center">52</td>
+<td class="gt_row gt_center">NARIÑO</td>
+<td class="gt_row gt_center">52227</td>
+<td class="gt_row gt_center">CUMBAL</td>
+<td class="gt_row gt_center">24</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-13</td>
+<td class="gt_row gt_center">2021-01-26</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">Por definir</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851421</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">52</td>
+<td class="gt_row gt_center">NARIÑO</td>
+<td class="gt_row gt_center">52317</td>
+<td class="gt_row gt_center">GUACHUCAL</td>
+<td class="gt_row gt_center">33</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-13</td>
+<td class="gt_row gt_center">2021-01-26</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">Por definir</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851422</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">52</td>
+<td class="gt_row gt_center">NARIÑO</td>
+<td class="gt_row gt_center">52378</td>
+<td class="gt_row gt_center">LA CRUZ</td>
+<td class="gt_row gt_center">35</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">2021-01-26</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851423</td>
+<td class="gt_row gt_center">2021-01-13</td>
+<td class="gt_row gt_center">52</td>
+<td class="gt_row gt_center">NARIÑO</td>
+<td class="gt_row gt_center">52378</td>
+<td class="gt_row gt_center">LA CRUZ</td>
+<td class="gt_row gt_center">36</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-13</td>
+<td class="gt_row gt_center">2021-01-26</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851424</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">52</td>
+<td class="gt_row gt_center">NARIÑO</td>
+<td class="gt_row gt_center">52378</td>
+<td class="gt_row gt_center">LA CRUZ</td>
+<td class="gt_row gt_center">33</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">2021-01-26</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851425</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">52</td>
+<td class="gt_row gt_center">NARIÑO</td>
+<td class="gt_row gt_center">52378</td>
+<td class="gt_row gt_center">LA CRUZ</td>
+<td class="gt_row gt_center">30</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">2021-01-26</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851426</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">68</td>
+<td class="gt_row gt_center">SANTANDER</td>
+<td class="gt_row gt_center">68081</td>
+<td class="gt_row gt_center">BARRANCABERMEJA</td>
+<td class="gt_row gt_center">38</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">2021-01-22</td>
+<td class="gt_row gt_center">PCR</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851427</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">68</td>
+<td class="gt_row gt_center">SANTANDER</td>
+<td class="gt_row gt_center">68081</td>
+<td class="gt_row gt_center">BARRANCABERMEJA</td>
+<td class="gt_row gt_center">37</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-10</td>
+<td class="gt_row gt_center">2021-01-22</td>
+<td class="gt_row gt_center">PCR</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851428</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">66</td>
+<td class="gt_row gt_center">RISARALDA</td>
+<td class="gt_row gt_center">66170</td>
+<td class="gt_row gt_center">DOSQUEBRADAS</td>
+<td class="gt_row gt_center">23</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">2021-01-22</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851429</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">15</td>
+<td class="gt_row gt_center">BOYACA</td>
+<td class="gt_row gt_center">15810</td>
+<td class="gt_row gt_center">TIPACOQUE</td>
+<td class="gt_row gt_center">19</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-13</td>
+<td class="gt_row gt_center">2021-01-22</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851430</td>
+<td class="gt_row gt_center">2021-01-11</td>
+<td class="gt_row gt_center">66</td>
+<td class="gt_row gt_center">RISARALDA</td>
+<td class="gt_row gt_center">66001</td>
+<td class="gt_row gt_center">PEREIRA</td>
+<td class="gt_row gt_center">27</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">2021-01-26</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851431</td>
+<td class="gt_row gt_center">2021-01-13</td>
+<td class="gt_row gt_center">54</td>
+<td class="gt_row gt_center">NORTE SANTANDER</td>
+<td class="gt_row gt_center">54001</td>
+<td class="gt_row gt_center">CUCUTA</td>
+<td class="gt_row gt_center">32</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">2021-01-26</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851432</td>
+<td class="gt_row gt_center">2021-01-13</td>
+<td class="gt_row gt_center">54</td>
+<td class="gt_row gt_center">NORTE SANTANDER</td>
+<td class="gt_row gt_center">54874</td>
+<td class="gt_row gt_center">VILLA DEL ROSARIO</td>
+<td class="gt_row gt_center">31</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-13</td>
+<td class="gt_row gt_center">2021-01-26</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851433</td>
+<td class="gt_row gt_center">2021-01-13</td>
+<td class="gt_row gt_center">68</td>
+<td class="gt_row gt_center">SANTANDER</td>
+<td class="gt_row gt_center">68001</td>
+<td class="gt_row gt_center">BUCARAMANGA</td>
+<td class="gt_row gt_center">69</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">2021-01-22</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-15</td>
+<td class="gt_row gt_center">1851434</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">68</td>
+<td class="gt_row gt_center">SANTANDER</td>
+<td class="gt_row gt_center">68081</td>
+<td class="gt_row gt_center">BARRANCABERMEJA</td>
+<td class="gt_row gt_center">54</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">2021-01-22</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805802</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5001</td>
+<td class="gt_row gt_center">MEDELLIN</td>
+<td class="gt_row gt_center">34</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-06</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-10</td>
+<td class="gt_row gt_center">2021-01-20</td>
+<td class="gt_row gt_center">PCR</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805803</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5001</td>
+<td class="gt_row gt_center">MEDELLIN</td>
+<td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-06</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-10</td>
+<td class="gt_row gt_center">2021-01-20</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805804</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5360</td>
+<td class="gt_row gt_center">ITAGUI</td>
+<td class="gt_row gt_center">46</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-07</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">2021-01-22</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805805</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5088</td>
+<td class="gt_row gt_center">BELLO</td>
+<td class="gt_row gt_center">40</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-06</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">2021-01-20</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805806</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5360</td>
+<td class="gt_row gt_center">ITAGUI</td>
+<td class="gt_row gt_center">38</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-05</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">2021-01-19</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805807</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5308</td>
+<td class="gt_row gt_center">GIRARDOTA</td>
+<td class="gt_row gt_center">42</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-12-30</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">2021-01-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805808</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5001</td>
+<td class="gt_row gt_center">MEDELLIN</td>
+<td class="gt_row gt_center">76</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Fallecido</td>
+<td class="gt_row gt_center">Fallecido</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Fallecido</td>
+<td class="gt_row gt_center">2021-01-01</td>
+<td class="gt_row gt_center">2021-01-25</td>
+<td class="gt_row gt_center">2021-01-11</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805809</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5001</td>
+<td class="gt_row gt_center">MEDELLIN</td>
+<td class="gt_row gt_center">27</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-04</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">2021-04-26</td>
+<td class="gt_row gt_center">PCR</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805810</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5674</td>
+<td class="gt_row gt_center">SAN VICENTE</td>
+<td class="gt_row gt_center">29</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-06</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-10</td>
+<td class="gt_row gt_center">2021-01-20</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805811</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5360</td>
+<td class="gt_row gt_center">ITAGUI</td>
+<td class="gt_row gt_center">82</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-04</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-11</td>
+<td class="gt_row gt_center">2021-01-18</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805812</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5001</td>
+<td class="gt_row gt_center">MEDELLIN</td>
+<td class="gt_row gt_center">35</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-05</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">2021-01-19</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805813</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5615</td>
+<td class="gt_row gt_center">RIONEGRO</td>
+<td class="gt_row gt_center">24</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-06</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-11</td>
+<td class="gt_row gt_center">2021-01-23</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805814</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5615</td>
+<td class="gt_row gt_center">RIONEGRO</td>
+<td class="gt_row gt_center">16</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-06</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-10</td>
+<td class="gt_row gt_center">2021-01-20</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805815</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5001</td>
+<td class="gt_row gt_center">MEDELLIN</td>
+<td class="gt_row gt_center">26</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-06</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-10</td>
+<td class="gt_row gt_center">2021-01-20</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805816</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5129</td>
+<td class="gt_row gt_center">CALDAS</td>
+<td class="gt_row gt_center">28</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-06</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-10</td>
+<td class="gt_row gt_center">2021-01-20</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805817</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5154</td>
+<td class="gt_row gt_center">CAUCASIA</td>
+<td class="gt_row gt_center">27</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-04</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">2021-01-18</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805818</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5360</td>
+<td class="gt_row gt_center">ITAGUI</td>
+<td class="gt_row gt_center">24</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-06</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-10</td>
+<td class="gt_row gt_center">2021-01-20</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805819</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5001</td>
+<td class="gt_row gt_center">MEDELLIN</td>
+<td class="gt_row gt_center">33</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-07</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">2021-01-22</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805820</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5001</td>
+<td class="gt_row gt_center">MEDELLIN</td>
+<td class="gt_row gt_center">18</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-04</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">2021-01-18</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805821</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5088</td>
+<td class="gt_row gt_center">BELLO</td>
+<td class="gt_row gt_center">22</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-06</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-10</td>
+<td class="gt_row gt_center">2021-01-20</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805822</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5001</td>
+<td class="gt_row gt_center">MEDELLIN</td>
+<td class="gt_row gt_center">29</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-04</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">2021-01-18</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805823</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5145</td>
+<td class="gt_row gt_center">CARAMANTA</td>
+<td class="gt_row gt_center">26</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-02</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">2021-01-17</td>
+<td class="gt_row gt_center">PCR</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805824</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5001</td>
+<td class="gt_row gt_center">MEDELLIN</td>
+<td class="gt_row gt_center">27</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-07</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-10</td>
+<td class="gt_row gt_center">2021-01-23</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805825</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5088</td>
+<td class="gt_row gt_center">BELLO</td>
+<td class="gt_row gt_center">30</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-05</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-09</td>
+<td class="gt_row gt_center">2021-01-19</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805826</td>
+<td class="gt_row gt_center">2021-01-06</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5148</td>
+<td class="gt_row gt_center">CARMEN DE VIBORAL</td>
+<td class="gt_row gt_center">72</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-03</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-10</td>
+<td class="gt_row gt_center">2021-01-17</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2021-01-12</td>
+<td class="gt_row gt_center">1805827</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5001</td>
+<td class="gt_row gt_center">MEDELLIN</td>
+<td class="gt_row gt_center">21</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2021-01-04</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2021-01-08</td>
+<td class="gt_row gt_center">2021-01-18</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675918</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">18</td>
+<td class="gt_row gt_center">CAQUETA</td>
+<td class="gt_row gt_center">18001</td>
+<td class="gt_row gt_center">FLORENCIA</td>
+<td class="gt_row gt_center">64</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Fallecido</td>
+<td class="gt_row gt_center">Fallecido</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Fallecido</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">2020-09-06</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675919</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">50</td>
+<td class="gt_row gt_center">META</td>
+<td class="gt_row gt_center">50001</td>
+<td class="gt_row gt_center">VILLAVICENCIO</td>
+<td class="gt_row gt_center">57</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-13</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675920</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">76</td>
+<td class="gt_row gt_center">VALLE</td>
+<td class="gt_row gt_center">76001</td>
+<td class="gt_row gt_center">CALI</td>
+<td class="gt_row gt_center">33</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-13</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675921</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">CESAR</td>
+<td class="gt_row gt_center">20001</td>
+<td class="gt_row gt_center">VALLEDUPAR</td>
+<td class="gt_row gt_center">34</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675922</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">8001</td>
+<td class="gt_row gt_center">BARRANQUILLA</td>
+<td class="gt_row gt_center">8001</td>
+<td class="gt_row gt_center">BARRANQUILLA</td>
+<td class="gt_row gt_center">45</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675923</td>
+<td class="gt_row gt_center">2020-08-22</td>
+<td class="gt_row gt_center">52</td>
+<td class="gt_row gt_center">NARIÑO</td>
+<td class="gt_row gt_center">52356</td>
+<td class="gt_row gt_center">IPIALES</td>
+<td class="gt_row gt_center">75</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-19</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-02</td>
+<td class="gt_row gt_center">2020-09-10</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675924</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">76</td>
+<td class="gt_row gt_center">VALLE</td>
+<td class="gt_row gt_center">76001</td>
+<td class="gt_row gt_center">CALI</td>
+<td class="gt_row gt_center">27</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-13</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675925</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">76</td>
+<td class="gt_row gt_center">VALLE</td>
+<td class="gt_row gt_center">76001</td>
+<td class="gt_row gt_center">CALI</td>
+<td class="gt_row gt_center">89</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Fallecido</td>
+<td class="gt_row gt_center">Fallecido</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Fallecido</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">2020-09-04</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675926</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">CESAR</td>
+<td class="gt_row gt_center">20001</td>
+<td class="gt_row gt_center">VALLEDUPAR</td>
+<td class="gt_row gt_center">58</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2021-05-26</td>
+<td class="gt_row gt_center">PCR</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675927</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">41</td>
+<td class="gt_row gt_center">HUILA</td>
+<td class="gt_row gt_center">41885</td>
+<td class="gt_row gt_center">YAGUARA</td>
+<td class="gt_row gt_center">36</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675928</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">99</td>
+<td class="gt_row gt_center">VICHADA</td>
+<td class="gt_row gt_center">99001</td>
+<td class="gt_row gt_center">PUERTO CARREÑO</td>
+<td class="gt_row gt_center">21</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-13</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675929</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">18</td>
+<td class="gt_row gt_center">CAQUETA</td>
+<td class="gt_row gt_center">18256</td>
+<td class="gt_row gt_center">EL PAUJIL</td>
+<td class="gt_row gt_center">50</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">N/A</td>
+<td class="gt_row gt_center">N/A</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">N/A</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">2021-01-11</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675930</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">66</td>
+<td class="gt_row gt_center">RISARALDA</td>
+<td class="gt_row gt_center">66001</td>
+<td class="gt_row gt_center">PEREIRA</td>
+<td class="gt_row gt_center">42</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-13</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">EMBERA KATIO</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675931</td>
+<td class="gt_row gt_center">2020-08-28</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5001</td>
+<td class="gt_row gt_center">MEDELLIN</td>
+<td class="gt_row gt_center">94</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-25</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">2020-12-28</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675932</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">41</td>
+<td class="gt_row gt_center">HUILA</td>
+<td class="gt_row gt_center">41001</td>
+<td class="gt_row gt_center">NEIVA</td>
+<td class="gt_row gt_center">51</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675933</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">CESAR</td>
+<td class="gt_row gt_center">20001</td>
+<td class="gt_row gt_center">VALLEDUPAR</td>
+<td class="gt_row gt_center">69</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675934</td>
+<td class="gt_row gt_center">2020-08-22</td>
+<td class="gt_row gt_center">86</td>
+<td class="gt_row gt_center">PUTUMAYO</td>
+<td class="gt_row gt_center">86001</td>
+<td class="gt_row gt_center">MOCOA</td>
+<td class="gt_row gt_center">19</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-18</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-02</td>
+<td class="gt_row gt_center">2020-09-09</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675935</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">19</td>
+<td class="gt_row gt_center">CAUCA</td>
+<td class="gt_row gt_center">19001</td>
+<td class="gt_row gt_center">POPAYAN</td>
+<td class="gt_row gt_center">35</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-22</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-12</td>
+<td class="gt_row gt_center">PCR</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675936</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5001</td>
+<td class="gt_row gt_center">MEDELLIN</td>
+<td class="gt_row gt_center">99</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675937</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5088</td>
+<td class="gt_row gt_center">BELLO</td>
+<td class="gt_row gt_center">13</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675938</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">47</td>
+<td class="gt_row gt_center">MAGDALENA</td>
+<td class="gt_row gt_center">47675</td>
+<td class="gt_row gt_center">SALAMINA</td>
+<td class="gt_row gt_center">46</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675939</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">23</td>
+<td class="gt_row gt_center">CORDOBA</td>
+<td class="gt_row gt_center">23001</td>
+<td class="gt_row gt_center">MONTERIA</td>
+<td class="gt_row gt_center">65</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-12-20</td>
+<td class="gt_row gt_center">PCR</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675940</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">19</td>
+<td class="gt_row gt_center">CAUCA</td>
+<td class="gt_row gt_center">19001</td>
+<td class="gt_row gt_center">POPAYAN</td>
+<td class="gt_row gt_center">43</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-22</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-12</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675941</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">68</td>
+<td class="gt_row gt_center">SANTANDER</td>
+<td class="gt_row gt_center">68081</td>
+<td class="gt_row gt_center">BARRANCABERMEJA</td>
+<td class="gt_row gt_center">7</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-13</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675942</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">CESAR</td>
+<td class="gt_row gt_center">20400</td>
+<td class="gt_row gt_center">LA JAGUA DE IBIRICO</td>
+<td class="gt_row gt_center">18</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675943</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">CESAR</td>
+<td class="gt_row gt_center">20013</td>
+<td class="gt_row gt_center">AGUSTIN CODAZZI</td>
+<td class="gt_row gt_center">55</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-10-13</td>
+<td class="gt_row gt_center">PCR</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675944</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">15</td>
+<td class="gt_row gt_center">BOYACA</td>
+<td class="gt_row gt_center">15759</td>
+<td class="gt_row gt_center">SOGAMOSO</td>
+<td class="gt_row gt_center">80</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675945</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">CESAR</td>
+<td class="gt_row gt_center">20001</td>
+<td class="gt_row gt_center">VALLEDUPAR</td>
+<td class="gt_row gt_center">61</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675946</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">50</td>
+<td class="gt_row gt_center">META</td>
+<td class="gt_row gt_center">50006</td>
+<td class="gt_row gt_center">ACACIAS</td>
+<td class="gt_row gt_center">14</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-13</td>
+<td class="gt_row gt_center">PCR</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675969</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">CESAR</td>
+<td class="gt_row gt_center">20001</td>
+<td class="gt_row gt_center">VALLEDUPAR</td>
+<td class="gt_row gt_center">2</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675970</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">19</td>
+<td class="gt_row gt_center">CAUCA</td>
+<td class="gt_row gt_center">19001</td>
+<td class="gt_row gt_center">POPAYAN</td>
+<td class="gt_row gt_center">3</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-22</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-12</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675971</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">CESAR</td>
+<td class="gt_row gt_center">20001</td>
+<td class="gt_row gt_center">VALLEDUPAR</td>
+<td class="gt_row gt_center">29</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675972</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">5001</td>
+<td class="gt_row gt_center">MEDELLIN</td>
+<td class="gt_row gt_center">36</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675973</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">99</td>
+<td class="gt_row gt_center">VICHADA</td>
+<td class="gt_row gt_center">99001</td>
+<td class="gt_row gt_center">PUERTO CARREÑO</td>
+<td class="gt_row gt_center">31</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Relacionado</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-10-10</td>
+<td class="gt_row gt_center">PCR</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675974</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">8</td>
+<td class="gt_row gt_center">ATLANTICO</td>
+<td class="gt_row gt_center">8296</td>
+<td class="gt_row gt_center">GALAPA</td>
+<td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">MOKANA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675975</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">50</td>
+<td class="gt_row gt_center">META</td>
+<td class="gt_row gt_center">50001</td>
+<td class="gt_row gt_center">VILLAVICENCIO</td>
+<td class="gt_row gt_center">35</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-13</td>
+<td class="gt_row gt_center">PCR</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675976</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">25</td>
+<td class="gt_row gt_center">CUNDINAMARCA</td>
+<td class="gt_row gt_center">25899</td>
+<td class="gt_row gt_center">ZIPAQUIRA</td>
+<td class="gt_row gt_center">7</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-13</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675977</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">68</td>
+<td class="gt_row gt_center">SANTANDER</td>
+<td class="gt_row gt_center">68081</td>
+<td class="gt_row gt_center">BARRANCABERMEJA</td>
+<td class="gt_row gt_center">37</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-13</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675978</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">68</td>
+<td class="gt_row gt_center">SANTANDER</td>
+<td class="gt_row gt_center">68001</td>
+<td class="gt_row gt_center">BUCARAMANGA</td>
+<td class="gt_row gt_center">41</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-13</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675979</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">18</td>
+<td class="gt_row gt_center">CAQUETA</td>
+<td class="gt_row gt_center">18001</td>
+<td class="gt_row gt_center">FLORENCIA</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675980</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">CESAR</td>
+<td class="gt_row gt_center">20013</td>
+<td class="gt_row gt_center">AGUSTIN CODAZZI</td>
+<td class="gt_row gt_center">47</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-14</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675981</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">25</td>
+<td class="gt_row gt_center">CUNDINAMARCA</td>
+<td class="gt_row gt_center">25740</td>
+<td class="gt_row gt_center">SIBATE</td>
+<td class="gt_row gt_center">25</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">2020-09-13</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-09-08</td>
+<td class="gt_row gt_center">675982</td>
+<td class="gt_row gt_center">2020-08-27</td>
+<td class="gt_row gt_center">25</td>
+<td class="gt_row gt_center">CUNDINAMARCA</td>
+<td class="gt_row gt_center">25286</td>
+<td class="gt_row gt_center">FUNZA</td>
+<td class="gt_row gt_center">58</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Fallecido</td>
+<td class="gt_row gt_center">Fallecido</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Fallecido</td>
+<td class="gt_row gt_center">2020-08-23</td>
+<td class="gt_row gt_center">2020-09-12</td>
+<td class="gt_row gt_center">2020-09-07</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-10-30</td>
+<td class="gt_row gt_center">1056251</td>
+<td class="gt_row gt_center">2020-10-17</td>
+<td class="gt_row gt_center">15</td>
+<td class="gt_row gt_center">BOYACA</td>
+<td class="gt_row gt_center">15759</td>
+<td class="gt_row gt_center">SOGAMOSO</td>
+<td class="gt_row gt_center">46</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-10-14</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-10-28</td>
+<td class="gt_row gt_center">2020-10-31</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-10-30</td>
+<td class="gt_row gt_center">1056252</td>
+<td class="gt_row gt_center">2020-10-18</td>
+<td class="gt_row gt_center">15</td>
+<td class="gt_row gt_center">BOYACA</td>
+<td class="gt_row gt_center">15001</td>
+<td class="gt_row gt_center">TUNJA</td>
+<td class="gt_row gt_center">26</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-10-15</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-10-29</td>
+<td class="gt_row gt_center">2020-10-31</td>
+<td class="gt_row gt_center">PCR</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-10-30</td>
+<td class="gt_row gt_center">1056253</td>
+<td class="gt_row gt_center">2020-10-04</td>
+<td class="gt_row gt_center">15</td>
+<td class="gt_row gt_center">BOYACA</td>
+<td class="gt_row gt_center">15001</td>
+<td class="gt_row gt_center">TUNJA</td>
+<td class="gt_row gt_center">30</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-09-30</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-10-15</td>
+<td class="gt_row gt_center">2020-10-31</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-10-30</td>
+<td class="gt_row gt_center">1056254</td>
+<td class="gt_row gt_center">2020-10-29</td>
+<td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">CALDAS</td>
+<td class="gt_row gt_center">17486</td>
+<td class="gt_row gt_center">NEIRA</td>
+<td class="gt_row gt_center">60</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-10-29</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-10-29</td>
+<td class="gt_row gt_center">2020-11-13</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-10-30</td>
+<td class="gt_row gt_center">1056255</td>
+<td class="gt_row gt_center">2020-10-29</td>
+<td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">CALDAS</td>
+<td class="gt_row gt_center">17001</td>
+<td class="gt_row gt_center">MANIZALES</td>
+<td class="gt_row gt_center">19</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-10-29</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-10-29</td>
+<td class="gt_row gt_center">2020-11-13</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-10-30</td>
+<td class="gt_row gt_center">1056256</td>
+<td class="gt_row gt_center">2020-10-28</td>
+<td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">CALDAS</td>
+<td class="gt_row gt_center">17001</td>
+<td class="gt_row gt_center">MANIZALES</td>
+<td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-10-28</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-10-28</td>
+<td class="gt_row gt_center">2020-11-12</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-10-30</td>
+<td class="gt_row gt_center">1056257</td>
+<td class="gt_row gt_center">2020-10-28</td>
+<td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">CALDAS</td>
+<td class="gt_row gt_center">17001</td>
+<td class="gt_row gt_center">MANIZALES</td>
+<td class="gt_row gt_center">61</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-10-28</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-10-29</td>
+<td class="gt_row gt_center">2020-11-12</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-10-30</td>
+<td class="gt_row gt_center">1056258</td>
+<td class="gt_row gt_center">2020-10-28</td>
+<td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">CALDAS</td>
+<td class="gt_row gt_center">17001</td>
+<td class="gt_row gt_center">MANIZALES</td>
+<td class="gt_row gt_center">27</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">F</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-10-28</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-10-28</td>
+<td class="gt_row gt_center">2020-11-12</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+    <tr><td class="gt_row gt_center">2020-10-30</td>
+<td class="gt_row gt_center">1056259</td>
+<td class="gt_row gt_center">2020-10-28</td>
+<td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">CALDAS</td>
+<td class="gt_row gt_center">17001</td>
+<td class="gt_row gt_center">MANIZALES</td>
+<td class="gt_row gt_center">26</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">M</td>
+<td class="gt_row gt_center">Comunitaria</td>
+<td class="gt_row gt_center">Casa</td>
+<td class="gt_row gt_center">Leve</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Recuperado</td>
+<td class="gt_row gt_center">2020-10-28</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">2020-10-28</td>
+<td class="gt_row gt_center">2020-11-12</td>
+<td class="gt_row gt_center">Tiempo</td>
+<td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">NA</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p><br>
+Además, leeemos la capa geográfica de límites territoriales de los departamentos de Colombia (Figura 1), cuyos atributos se muestra en la Tabla 2.</p>
+<pre class="r"><code>dpto &lt;- read_sf(&quot;C:/Users/Luis/Documents/Manipulacion analisis datos espaciales R/Datos/shp/MGN_DPTO_POLITICO.shp&quot;)
+
+ggplot() +
+  geom_sf(data = dpto) +
+  xlab(label = &quot;Oeste&quot;) +
+  ylab(label = &quot;Norte&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/unnamed-chunk-3-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 1. Límites departamentales de Colombia.
+</p>
+<p>Tabla 2. Atributos de la capa de departamentos de Colombia.</p>
+<div id="doowellecs" style="overflow-x:auto;overflow-y:auto;width:auto;height:500px;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#doowellecs .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: 100%;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#doowellecs .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#doowellecs .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#doowellecs .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#doowellecs .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#doowellecs .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#doowellecs .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#doowellecs .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#doowellecs .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#doowellecs .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#doowellecs .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#doowellecs .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#doowellecs .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#doowellecs .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#doowellecs .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#doowellecs .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#doowellecs .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#doowellecs .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#doowellecs .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#doowellecs .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#doowellecs .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#doowellecs .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#doowellecs .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#doowellecs .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#doowellecs .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#doowellecs .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#doowellecs .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#doowellecs .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#doowellecs .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#doowellecs .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#doowellecs .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#doowellecs .gt_left {
+  text-align: left;
+}
+
+#doowellecs .gt_center {
+  text-align: center;
+}
+
+#doowellecs .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#doowellecs .gt_font_normal {
+  font-weight: normal;
+}
+
+#doowellecs .gt_font_bold {
+  font-weight: bold;
+}
+
+#doowellecs .gt_font_italic {
+  font-style: italic;
+}
+
+#doowellecs .gt_super {
+  font-size: 65%;
+}
+
+#doowellecs .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#doowellecs .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#doowellecs .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#doowellecs .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#doowellecs .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#doowellecs .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">OBJECTID</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">DPTO_CCDGO</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">DPTO_CNMBR</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">DPTO_NACRC</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">DPTO_CACTO</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">DPTO_NANO</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Shape_Leng</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Shape_Area</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">05</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">1886</td>
+<td class="gt_row gt_center">Constitucion Politica de 1886</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">21.4437604</td>
+<td class="gt_row gt_center">5.134915314</td></tr>
+    <tr><td class="gt_row gt_center">2</td>
+<td class="gt_row gt_center">08</td>
+<td class="gt_row gt_center">ATLÁNTICO</td>
+<td class="gt_row gt_center">1910</td>
+<td class="gt_row gt_center">Ley 21 de 1910</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">2.5407822</td>
+<td class="gt_row gt_center">0.273930379</td></tr>
+    <tr><td class="gt_row gt_center">3</td>
+<td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">BOGOTÁ, D.C.</td>
+<td class="gt_row gt_center">1538</td>
+<td class="gt_row gt_center">Constitucion Politica de 1886</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">3.7604533</td>
+<td class="gt_row gt_center">0.132207854</td></tr>
+    <tr><td class="gt_row gt_center">4</td>
+<td class="gt_row gt_center">13</td>
+<td class="gt_row gt_center">BOLÍVAR</td>
+<td class="gt_row gt_center">1886</td>
+<td class="gt_row gt_center">Constitucion Politica de 1886</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">16.0333328</td>
+<td class="gt_row gt_center">2.195373568</td></tr>
+    <tr><td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">15</td>
+<td class="gt_row gt_center">BOYACÁ</td>
+<td class="gt_row gt_center">1886</td>
+<td class="gt_row gt_center">Constitucion Politica de 1886</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">15.9064914</td>
+<td class="gt_row gt_center">1.888390832</td></tr>
+    <tr><td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">CALDAS</td>
+<td class="gt_row gt_center">1905</td>
+<td class="gt_row gt_center">11 de Abril de 1905</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">6.6563516</td>
+<td class="gt_row gt_center">0.605501726</td></tr>
+    <tr><td class="gt_row gt_center">7</td>
+<td class="gt_row gt_center">18</td>
+<td class="gt_row gt_center">CAQUETÁ</td>
+<td class="gt_row gt_center">1981</td>
+<td class="gt_row gt_center">Ley 78 del 29 de Diciembre de 1981</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">21.3842868</td>
+<td class="gt_row gt_center">7.318484692</td></tr>
+    <tr><td class="gt_row gt_center">8</td>
+<td class="gt_row gt_center">19</td>
+<td class="gt_row gt_center">CAUCA</td>
+<td class="gt_row gt_center">1857</td>
+<td class="gt_row gt_center">15 de junio de 1857</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">13.9515651</td>
+<td class="gt_row gt_center">2.534421782</td></tr>
+    <tr><td class="gt_row gt_center">9</td>
+<td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">CESAR</td>
+<td class="gt_row gt_center">1967</td>
+<td class="gt_row gt_center">Ley 25  21 de junio de 1967</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">12.6112471</td>
+<td class="gt_row gt_center">1.857959533</td></tr>
+    <tr><td class="gt_row gt_center">10</td>
+<td class="gt_row gt_center">23</td>
+<td class="gt_row gt_center">CÓRDOBA</td>
+<td class="gt_row gt_center">1951</td>
+<td class="gt_row gt_center">Ley 9 del 18 de Diciembre de 1951</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">9.6915090</td>
+<td class="gt_row gt_center">2.057533510</td></tr>
+    <tr><td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">25</td>
+<td class="gt_row gt_center">CUNDINAMARCA</td>
+<td class="gt_row gt_center">1886</td>
+<td class="gt_row gt_center">Constitucion Politica de 1886</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">13.1200771</td>
+<td class="gt_row gt_center">1.823631429</td></tr>
+    <tr><td class="gt_row gt_center">12</td>
+<td class="gt_row gt_center">27</td>
+<td class="gt_row gt_center">CHOCÓ</td>
+<td class="gt_row gt_center">1947</td>
+<td class="gt_row gt_center">Ley 13 del 3 de Noviembre de 1947</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">20.6335619</td>
+<td class="gt_row gt_center">3.939726140</td></tr>
+    <tr><td class="gt_row gt_center">13</td>
+<td class="gt_row gt_center">41</td>
+<td class="gt_row gt_center">HUILA</td>
+<td class="gt_row gt_center">1905</td>
+<td class="gt_row gt_center">Ley 46 de 1905</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">10.3355646</td>
+<td class="gt_row gt_center">1.474219178</td></tr>
+    <tr><td class="gt_row gt_center">14</td>
+<td class="gt_row gt_center">44</td>
+<td class="gt_row gt_center">LA GUAJIRA</td>
+<td class="gt_row gt_center">1964</td>
+<td class="gt_row gt_center">Acto Legislativo No. 1 de Diciembre 28 de 1964</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">10.8199870</td>
+<td class="gt_row gt_center">1.707118371</td></tr>
+    <tr><td class="gt_row gt_center">15</td>
+<td class="gt_row gt_center">47</td>
+<td class="gt_row gt_center">MAGDALENA</td>
+<td class="gt_row gt_center">1964</td>
+<td class="gt_row gt_center">1964</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">10.8157876</td>
+<td class="gt_row gt_center">1.909266745</td></tr>
+    <tr><td class="gt_row gt_center">16</td>
+<td class="gt_row gt_center">50</td>
+<td class="gt_row gt_center">META</td>
+<td class="gt_row gt_center">1959</td>
+<td class="gt_row gt_center">Ley 118 del 16 de Diciembre de 1959</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">18.2348737</td>
+<td class="gt_row gt_center">6.955378035</td></tr>
+    <tr><td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">52</td>
+<td class="gt_row gt_center">NARIÑO</td>
+<td class="gt_row gt_center">1904</td>
+<td class="gt_row gt_center">Ley 1 de 1904</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">12.8268286</td>
+<td class="gt_row gt_center">2.548457672</td></tr>
+    <tr><td class="gt_row gt_center">18</td>
+<td class="gt_row gt_center">54</td>
+<td class="gt_row gt_center">NORTE DE SANTANDER</td>
+<td class="gt_row gt_center">1910</td>
+<td class="gt_row gt_center">Ley 25 de 1910</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">10.6945333</td>
+<td class="gt_row gt_center">1.792293634</td></tr>
+    <tr><td class="gt_row gt_center">19</td>
+<td class="gt_row gt_center">63</td>
+<td class="gt_row gt_center">QUINDIO</td>
+<td class="gt_row gt_center">1966</td>
+<td class="gt_row gt_center">Ley 2 TM de 1966</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">2.5548255</td>
+<td class="gt_row gt_center">0.157423729</td></tr>
+    <tr><td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">66</td>
+<td class="gt_row gt_center">RISARALDA</td>
+<td class="gt_row gt_center">1966</td>
+<td class="gt_row gt_center">Ley 70 del 1 de Diciembre de 1966</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">4.8435872</td>
+<td class="gt_row gt_center">0.289790626</td></tr>
+    <tr><td class="gt_row gt_center">21</td>
+<td class="gt_row gt_center">68</td>
+<td class="gt_row gt_center">SANTANDER</td>
+<td class="gt_row gt_center">1910</td>
+<td class="gt_row gt_center">Ley 25 14 de Julio de 1910</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">11.8785987</td>
+<td class="gt_row gt_center">2.499104130</td></tr>
+    <tr><td class="gt_row gt_center">22</td>
+<td class="gt_row gt_center">70</td>
+<td class="gt_row gt_center">SUCRE</td>
+<td class="gt_row gt_center">1966</td>
+<td class="gt_row gt_center">Ley 47 del 8 de Agosto de 1966</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">8.5710346</td>
+<td class="gt_row gt_center">0.870810408</td></tr>
+    <tr><td class="gt_row gt_center">23</td>
+<td class="gt_row gt_center">73</td>
+<td class="gt_row gt_center">TOLIMA</td>
+<td class="gt_row gt_center">1909</td>
+<td class="gt_row gt_center">Ley 65 de Noviembre de 1909</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">9.5513872</td>
+<td class="gt_row gt_center">1.965022630</td></tr>
+    <tr><td class="gt_row gt_center">24</td>
+<td class="gt_row gt_center">76</td>
+<td class="gt_row gt_center">VALLE DEL CAUCA</td>
+<td class="gt_row gt_center">1910</td>
+<td class="gt_row gt_center">Decreto No 340 de 16 de Abril de 1910</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">12.6291672</td>
+<td class="gt_row gt_center">1.679484237</td></tr>
+    <tr><td class="gt_row gt_center">25</td>
+<td class="gt_row gt_center">81</td>
+<td class="gt_row gt_center">ARAUCA</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">5 de Julio Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">9.1245856</td>
+<td class="gt_row gt_center">1.944156904</td></tr>
+    <tr><td class="gt_row gt_center">26</td>
+<td class="gt_row gt_center">85</td>
+<td class="gt_row gt_center">CASANARE</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">5 de Julio Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">12.1327536</td>
+<td class="gt_row gt_center">3.615063148</td></tr>
+    <tr><td class="gt_row gt_center">27</td>
+<td class="gt_row gt_center">86</td>
+<td class="gt_row gt_center">PUTUMAYO</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">Articulo 309 Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">12.7079225</td>
+<td class="gt_row gt_center">2.107964833</td></tr>
+    <tr><td class="gt_row gt_center">28</td>
+<td class="gt_row gt_center">88</td>
+<td class="gt_row gt_center">ARCHIPIÉLAGO DE SAN ANDRÉS, PROVIDENCIA Y SANTA CATALINA</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">Artículo 310 Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">0.6852594</td>
+<td class="gt_row gt_center">0.004049898</td></tr>
+    <tr><td class="gt_row gt_center">29</td>
+<td class="gt_row gt_center">91</td>
+<td class="gt_row gt_center">AMAZONAS</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">Dcto. 2274 del 4 de Octubre de la Constitución Política 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">25.3559774</td>
+<td class="gt_row gt_center">8.877479989</td></tr>
+    <tr><td class="gt_row gt_center">30</td>
+<td class="gt_row gt_center">94</td>
+<td class="gt_row gt_center">GUAINÍA</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">Articulo 309 Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">21.1790495</td>
+<td class="gt_row gt_center">5.747937887</td></tr>
+    <tr><td class="gt_row gt_center">31</td>
+<td class="gt_row gt_center">95</td>
+<td class="gt_row gt_center">GUAVIARE</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">5 de Julio Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">19.3967890</td>
+<td class="gt_row gt_center">4.511457244</td></tr>
+    <tr><td class="gt_row gt_center">32</td>
+<td class="gt_row gt_center">97</td>
+<td class="gt_row gt_center">VAUPÉS</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">Articulo 309 Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">20.1298337</td>
+<td class="gt_row gt_center">4.313810177</td></tr>
+    <tr><td class="gt_row gt_center">33</td>
+<td class="gt_row gt_center">99</td>
+<td class="gt_row gt_center">VICHADA</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">5 de Julio Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">17.2926130</td>
+<td class="gt_row gt_center">8.100680491</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p>Luego, realizamos el conteo de contagios por departamento (Tabla 3), siguiendo las la ruta usada en post anteriores, como se muestra a continuación.</p>
+<pre class="r"><code>covid19dpto &lt;- covid19 %&gt;% 
+  select(`Código DIVIPOLA departamento`, `Nombre departamento`) %&gt;% 
+  rename(Cod_DANE = `Código DIVIPOLA departamento`, Departamento = `Nombre departamento`) %&gt;% 
+  mutate(Cod_DANE = str_replace(string = Cod_DANE, pattern = &quot;001&quot;, replacement = &quot;&quot;),
+         Cod_DANE = as.character(Cod_DANE),
+         Cod_DANE = if_else(condition = nchar(Cod_DANE) == 1, 
+                            true = paste0(0,Cod_DANE), 
+                            false = Cod_DANE)) %&gt;% 
+  group_by(Cod_DANE) %&gt;% 
+  summarise(Contagios = n()) %&gt;% 
+  ungroup()</code></pre>
+<p>Tabla 3. Totales de contagios por COVID-19 para cada departamento de Colombia.</p>
+<div id="wgdttxxxxu" style="overflow-x:auto;overflow-y:auto;width:auto;height:500px;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#wgdttxxxxu .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: 100%;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#wgdttxxxxu .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#wgdttxxxxu .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#wgdttxxxxu .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#wgdttxxxxu .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#wgdttxxxxu .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#wgdttxxxxu .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#wgdttxxxxu .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#wgdttxxxxu .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#wgdttxxxxu .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#wgdttxxxxu .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#wgdttxxxxu .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#wgdttxxxxu .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#wgdttxxxxu .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#wgdttxxxxu .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#wgdttxxxxu .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#wgdttxxxxu .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wgdttxxxxu .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#wgdttxxxxu .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#wgdttxxxxu .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wgdttxxxxu .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#wgdttxxxxu .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#wgdttxxxxu .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#wgdttxxxxu .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wgdttxxxxu .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#wgdttxxxxu .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#wgdttxxxxu .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#wgdttxxxxu .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#wgdttxxxxu .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wgdttxxxxu .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#wgdttxxxxu .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wgdttxxxxu .gt_left {
+  text-align: left;
+}
+
+#wgdttxxxxu .gt_center {
+  text-align: center;
+}
+
+#wgdttxxxxu .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#wgdttxxxxu .gt_font_normal {
+  font-weight: normal;
+}
+
+#wgdttxxxxu .gt_font_bold {
+  font-weight: bold;
+}
+
+#wgdttxxxxu .gt_font_italic {
+  font-style: italic;
+}
+
+#wgdttxxxxu .gt_super {
+  font-size: 65%;
+}
+
+#wgdttxxxxu .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#wgdttxxxxu .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#wgdttxxxxu .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#wgdttxxxxu .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#wgdttxxxxu .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#wgdttxxxxu .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Cod_DANE</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Contagios</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_center">05</td>
+<td class="gt_row gt_center">917877</td></tr>
+    <tr><td class="gt_row gt_center">08</td>
+<td class="gt_row gt_center">402060</td></tr>
+    <tr><td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">1766333</td></tr>
+    <tr><td class="gt_row gt_center">13</td>
+<td class="gt_row gt_center">197125</td></tr>
+    <tr><td class="gt_row gt_center">15</td>
+<td class="gt_row gt_center">125154</td></tr>
+    <tr><td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">116905</td></tr>
+    <tr><td class="gt_row gt_center">18</td>
+<td class="gt_row gt_center">24966</td></tr>
+    <tr><td class="gt_row gt_center">19</td>
+<td class="gt_row gt_center">72213</td></tr>
+    <tr><td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">106418</td></tr>
+    <tr><td class="gt_row gt_center">23</td>
+<td class="gt_row gt_center">118996</td></tr>
+    <tr><td class="gt_row gt_center">25</td>
+<td class="gt_row gt_center">317990</td></tr>
+    <tr><td class="gt_row gt_center">27</td>
+<td class="gt_row gt_center">18585</td></tr>
+    <tr><td class="gt_row gt_center">41</td>
+<td class="gt_row gt_center">100304</td></tr>
+    <tr><td class="gt_row gt_center">44</td>
+<td class="gt_row gt_center">56298</td></tr>
+    <tr><td class="gt_row gt_center">47</td>
+<td class="gt_row gt_center">114801</td></tr>
+    <tr><td class="gt_row gt_center">50</td>
+<td class="gt_row gt_center">104941</td></tr>
+    <tr><td class="gt_row gt_center">52</td>
+<td class="gt_row gt_center">104415</td></tr>
+    <tr><td class="gt_row gt_center">54</td>
+<td class="gt_row gt_center">119709</td></tr>
+    <tr><td class="gt_row gt_center">63</td>
+<td class="gt_row gt_center">70786</td></tr>
+    <tr><td class="gt_row gt_center">66</td>
+<td class="gt_row gt_center">106309</td></tr>
+    <tr><td class="gt_row gt_center">68</td>
+<td class="gt_row gt_center">283226</td></tr>
+    <tr><td class="gt_row gt_center">70</td>
+<td class="gt_row gt_center">65648</td></tr>
+    <tr><td class="gt_row gt_center">73</td>
+<td class="gt_row gt_center">124324</td></tr>
+    <tr><td class="gt_row gt_center">76</td>
+<td class="gt_row gt_center">540421</td></tr>
+    <tr><td class="gt_row gt_center">81</td>
+<td class="gt_row gt_center">16309</td></tr>
+    <tr><td class="gt_row gt_center">85</td>
+<td class="gt_row gt_center">41641</td></tr>
+    <tr><td class="gt_row gt_center">86</td>
+<td class="gt_row gt_center">20479</td></tr>
+    <tr><td class="gt_row gt_center">88</td>
+<td class="gt_row gt_center">10184</td></tr>
+    <tr><td class="gt_row gt_center">91</td>
+<td class="gt_row gt_center">7565</td></tr>
+    <tr><td class="gt_row gt_center">94</td>
+<td class="gt_row gt_center">2764</td></tr>
+    <tr><td class="gt_row gt_center">95</td>
+<td class="gt_row gt_center">5586</td></tr>
+    <tr><td class="gt_row gt_center">97</td>
+<td class="gt_row gt_center">1888</td></tr>
+    <tr><td class="gt_row gt_center">99</td>
+<td class="gt_row gt_center">3398</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p><br>
+Note que como novedad que se uso la función <code>str_replace()</code> para encontrar aquellos códigos de la sivisión politico-administrativa (Cod_DANE) con terminación en 001, es decir, aquelos que corresponden a los distritos de Barranquilla (8001), Santa Marta (47001) y Cartagena (13001) para remover estas terminaciones; posteriormente se conviertieron en caracter y finalmente, mediante un condicional, se agregó un cero (0) a la izquiera a auellos códigos con solo un caracter. Todo esto para darle el mismo formato que posee el mismo código en la capa vectorial.</p>
+<p>Luego se realiza un <em>spatial join</em> entre la tabla de contagios totales por COVID-19 en cada departamento y la tabla de atributos de la capa vecctorial de los límites administrativos Tabla 4, mediante la función <code>inner_join()</code>.</p>
+<pre class="r"><code>covid19col &lt;- inner_join(x = dpto, y = covid19dpto, by = c(&#39;DPTO_CCDGO&#39; = &#39;Cod_DANE&#39;))</code></pre>
+<p>Tabla 4. Join entre tabla de contagios totales por COVID-19 en cada departamento y la tabla de atributos de la capa vectorial de los límites administrativos.</p>
+<div id="lbamofzeav" style="overflow-x:auto;overflow-y:auto;width:auto;height:500px;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#lbamofzeav .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: 100%;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#lbamofzeav .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#lbamofzeav .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#lbamofzeav .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#lbamofzeav .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#lbamofzeav .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#lbamofzeav .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#lbamofzeav .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#lbamofzeav .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#lbamofzeav .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#lbamofzeav .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#lbamofzeav .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#lbamofzeav .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#lbamofzeav .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#lbamofzeav .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#lbamofzeav .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#lbamofzeav .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#lbamofzeav .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#lbamofzeav .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#lbamofzeav .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#lbamofzeav .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#lbamofzeav .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#lbamofzeav .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#lbamofzeav .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#lbamofzeav .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#lbamofzeav .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#lbamofzeav .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#lbamofzeav .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#lbamofzeav .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#lbamofzeav .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#lbamofzeav .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#lbamofzeav .gt_left {
+  text-align: left;
+}
+
+#lbamofzeav .gt_center {
+  text-align: center;
+}
+
+#lbamofzeav .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#lbamofzeav .gt_font_normal {
+  font-weight: normal;
+}
+
+#lbamofzeav .gt_font_bold {
+  font-weight: bold;
+}
+
+#lbamofzeav .gt_font_italic {
+  font-style: italic;
+}
+
+#lbamofzeav .gt_super {
+  font-size: 65%;
+}
+
+#lbamofzeav .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#lbamofzeav .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#lbamofzeav .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#lbamofzeav .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#lbamofzeav .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#lbamofzeav .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">OBJECTID</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">DPTO_CCDGO</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">DPTO_CNMBR</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">DPTO_NACRC</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">DPTO_CACTO</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">DPTO_NANO</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Shape_Leng</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Shape_Area</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Contagios</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">05</td>
+<td class="gt_row gt_center">ANTIOQUIA</td>
+<td class="gt_row gt_center">1886</td>
+<td class="gt_row gt_center">Constitucion Politica de 1886</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">21.4437604</td>
+<td class="gt_row gt_center">5.134915314</td>
+<td class="gt_row gt_center">917877</td></tr>
+    <tr><td class="gt_row gt_center">2</td>
+<td class="gt_row gt_center">08</td>
+<td class="gt_row gt_center">ATLÁNTICO</td>
+<td class="gt_row gt_center">1910</td>
+<td class="gt_row gt_center">Ley 21 de 1910</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">2.5407822</td>
+<td class="gt_row gt_center">0.273930379</td>
+<td class="gt_row gt_center">402060</td></tr>
+    <tr><td class="gt_row gt_center">3</td>
+<td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">BOGOTÁ, D.C.</td>
+<td class="gt_row gt_center">1538</td>
+<td class="gt_row gt_center">Constitucion Politica de 1886</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">3.7604533</td>
+<td class="gt_row gt_center">0.132207854</td>
+<td class="gt_row gt_center">1766333</td></tr>
+    <tr><td class="gt_row gt_center">4</td>
+<td class="gt_row gt_center">13</td>
+<td class="gt_row gt_center">BOLÍVAR</td>
+<td class="gt_row gt_center">1886</td>
+<td class="gt_row gt_center">Constitucion Politica de 1886</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">16.0333328</td>
+<td class="gt_row gt_center">2.195373568</td>
+<td class="gt_row gt_center">197125</td></tr>
+    <tr><td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">15</td>
+<td class="gt_row gt_center">BOYACÁ</td>
+<td class="gt_row gt_center">1886</td>
+<td class="gt_row gt_center">Constitucion Politica de 1886</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">15.9064914</td>
+<td class="gt_row gt_center">1.888390832</td>
+<td class="gt_row gt_center">125154</td></tr>
+    <tr><td class="gt_row gt_center">6</td>
+<td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">CALDAS</td>
+<td class="gt_row gt_center">1905</td>
+<td class="gt_row gt_center">11 de Abril de 1905</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">6.6563516</td>
+<td class="gt_row gt_center">0.605501726</td>
+<td class="gt_row gt_center">116905</td></tr>
+    <tr><td class="gt_row gt_center">7</td>
+<td class="gt_row gt_center">18</td>
+<td class="gt_row gt_center">CAQUETÁ</td>
+<td class="gt_row gt_center">1981</td>
+<td class="gt_row gt_center">Ley 78 del 29 de Diciembre de 1981</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">21.3842868</td>
+<td class="gt_row gt_center">7.318484692</td>
+<td class="gt_row gt_center">24966</td></tr>
+    <tr><td class="gt_row gt_center">8</td>
+<td class="gt_row gt_center">19</td>
+<td class="gt_row gt_center">CAUCA</td>
+<td class="gt_row gt_center">1857</td>
+<td class="gt_row gt_center">15 de junio de 1857</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">13.9515651</td>
+<td class="gt_row gt_center">2.534421782</td>
+<td class="gt_row gt_center">72213</td></tr>
+    <tr><td class="gt_row gt_center">9</td>
+<td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">CESAR</td>
+<td class="gt_row gt_center">1967</td>
+<td class="gt_row gt_center">Ley 25  21 de junio de 1967</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">12.6112471</td>
+<td class="gt_row gt_center">1.857959533</td>
+<td class="gt_row gt_center">106418</td></tr>
+    <tr><td class="gt_row gt_center">10</td>
+<td class="gt_row gt_center">23</td>
+<td class="gt_row gt_center">CÓRDOBA</td>
+<td class="gt_row gt_center">1951</td>
+<td class="gt_row gt_center">Ley 9 del 18 de Diciembre de 1951</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">9.6915090</td>
+<td class="gt_row gt_center">2.057533510</td>
+<td class="gt_row gt_center">118996</td></tr>
+    <tr><td class="gt_row gt_center">11</td>
+<td class="gt_row gt_center">25</td>
+<td class="gt_row gt_center">CUNDINAMARCA</td>
+<td class="gt_row gt_center">1886</td>
+<td class="gt_row gt_center">Constitucion Politica de 1886</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">13.1200771</td>
+<td class="gt_row gt_center">1.823631429</td>
+<td class="gt_row gt_center">317990</td></tr>
+    <tr><td class="gt_row gt_center">12</td>
+<td class="gt_row gt_center">27</td>
+<td class="gt_row gt_center">CHOCÓ</td>
+<td class="gt_row gt_center">1947</td>
+<td class="gt_row gt_center">Ley 13 del 3 de Noviembre de 1947</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">20.6335619</td>
+<td class="gt_row gt_center">3.939726140</td>
+<td class="gt_row gt_center">18585</td></tr>
+    <tr><td class="gt_row gt_center">13</td>
+<td class="gt_row gt_center">41</td>
+<td class="gt_row gt_center">HUILA</td>
+<td class="gt_row gt_center">1905</td>
+<td class="gt_row gt_center">Ley 46 de 1905</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">10.3355646</td>
+<td class="gt_row gt_center">1.474219178</td>
+<td class="gt_row gt_center">100304</td></tr>
+    <tr><td class="gt_row gt_center">14</td>
+<td class="gt_row gt_center">44</td>
+<td class="gt_row gt_center">LA GUAJIRA</td>
+<td class="gt_row gt_center">1964</td>
+<td class="gt_row gt_center">Acto Legislativo No. 1 de Diciembre 28 de 1964</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">10.8199870</td>
+<td class="gt_row gt_center">1.707118371</td>
+<td class="gt_row gt_center">56298</td></tr>
+    <tr><td class="gt_row gt_center">15</td>
+<td class="gt_row gt_center">47</td>
+<td class="gt_row gt_center">MAGDALENA</td>
+<td class="gt_row gt_center">1964</td>
+<td class="gt_row gt_center">1964</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">10.8157876</td>
+<td class="gt_row gt_center">1.909266745</td>
+<td class="gt_row gt_center">114801</td></tr>
+    <tr><td class="gt_row gt_center">16</td>
+<td class="gt_row gt_center">50</td>
+<td class="gt_row gt_center">META</td>
+<td class="gt_row gt_center">1959</td>
+<td class="gt_row gt_center">Ley 118 del 16 de Diciembre de 1959</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">18.2348737</td>
+<td class="gt_row gt_center">6.955378035</td>
+<td class="gt_row gt_center">104941</td></tr>
+    <tr><td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">52</td>
+<td class="gt_row gt_center">NARIÑO</td>
+<td class="gt_row gt_center">1904</td>
+<td class="gt_row gt_center">Ley 1 de 1904</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">12.8268286</td>
+<td class="gt_row gt_center">2.548457672</td>
+<td class="gt_row gt_center">104415</td></tr>
+    <tr><td class="gt_row gt_center">18</td>
+<td class="gt_row gt_center">54</td>
+<td class="gt_row gt_center">NORTE DE SANTANDER</td>
+<td class="gt_row gt_center">1910</td>
+<td class="gt_row gt_center">Ley 25 de 1910</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">10.6945333</td>
+<td class="gt_row gt_center">1.792293634</td>
+<td class="gt_row gt_center">119709</td></tr>
+    <tr><td class="gt_row gt_center">19</td>
+<td class="gt_row gt_center">63</td>
+<td class="gt_row gt_center">QUINDIO</td>
+<td class="gt_row gt_center">1966</td>
+<td class="gt_row gt_center">Ley 2 TM de 1966</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">2.5548255</td>
+<td class="gt_row gt_center">0.157423729</td>
+<td class="gt_row gt_center">70786</td></tr>
+    <tr><td class="gt_row gt_center">20</td>
+<td class="gt_row gt_center">66</td>
+<td class="gt_row gt_center">RISARALDA</td>
+<td class="gt_row gt_center">1966</td>
+<td class="gt_row gt_center">Ley 70 del 1 de Diciembre de 1966</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">4.8435872</td>
+<td class="gt_row gt_center">0.289790626</td>
+<td class="gt_row gt_center">106309</td></tr>
+    <tr><td class="gt_row gt_center">21</td>
+<td class="gt_row gt_center">68</td>
+<td class="gt_row gt_center">SANTANDER</td>
+<td class="gt_row gt_center">1910</td>
+<td class="gt_row gt_center">Ley 25 14 de Julio de 1910</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">11.8785987</td>
+<td class="gt_row gt_center">2.499104130</td>
+<td class="gt_row gt_center">283226</td></tr>
+    <tr><td class="gt_row gt_center">22</td>
+<td class="gt_row gt_center">70</td>
+<td class="gt_row gt_center">SUCRE</td>
+<td class="gt_row gt_center">1966</td>
+<td class="gt_row gt_center">Ley 47 del 8 de Agosto de 1966</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">8.5710346</td>
+<td class="gt_row gt_center">0.870810408</td>
+<td class="gt_row gt_center">65648</td></tr>
+    <tr><td class="gt_row gt_center">23</td>
+<td class="gt_row gt_center">73</td>
+<td class="gt_row gt_center">TOLIMA</td>
+<td class="gt_row gt_center">1909</td>
+<td class="gt_row gt_center">Ley 65 de Noviembre de 1909</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">9.5513872</td>
+<td class="gt_row gt_center">1.965022630</td>
+<td class="gt_row gt_center">124324</td></tr>
+    <tr><td class="gt_row gt_center">24</td>
+<td class="gt_row gt_center">76</td>
+<td class="gt_row gt_center">VALLE DEL CAUCA</td>
+<td class="gt_row gt_center">1910</td>
+<td class="gt_row gt_center">Decreto No 340 de 16 de Abril de 1910</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">12.6291672</td>
+<td class="gt_row gt_center">1.679484237</td>
+<td class="gt_row gt_center">540421</td></tr>
+    <tr><td class="gt_row gt_center">25</td>
+<td class="gt_row gt_center">81</td>
+<td class="gt_row gt_center">ARAUCA</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">5 de Julio Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">9.1245856</td>
+<td class="gt_row gt_center">1.944156904</td>
+<td class="gt_row gt_center">16309</td></tr>
+    <tr><td class="gt_row gt_center">26</td>
+<td class="gt_row gt_center">85</td>
+<td class="gt_row gt_center">CASANARE</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">5 de Julio Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">12.1327536</td>
+<td class="gt_row gt_center">3.615063148</td>
+<td class="gt_row gt_center">41641</td></tr>
+    <tr><td class="gt_row gt_center">27</td>
+<td class="gt_row gt_center">86</td>
+<td class="gt_row gt_center">PUTUMAYO</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">Articulo 309 Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">12.7079225</td>
+<td class="gt_row gt_center">2.107964833</td>
+<td class="gt_row gt_center">20479</td></tr>
+    <tr><td class="gt_row gt_center">28</td>
+<td class="gt_row gt_center">88</td>
+<td class="gt_row gt_center">ARCHIPIÉLAGO DE SAN ANDRÉS, PROVIDENCIA Y SANTA CATALINA</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">Artículo 310 Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">0.6852594</td>
+<td class="gt_row gt_center">0.004049898</td>
+<td class="gt_row gt_center">10184</td></tr>
+    <tr><td class="gt_row gt_center">29</td>
+<td class="gt_row gt_center">91</td>
+<td class="gt_row gt_center">AMAZONAS</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">Dcto. 2274 del 4 de Octubre de la Constitución Política 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">25.3559774</td>
+<td class="gt_row gt_center">8.877479989</td>
+<td class="gt_row gt_center">7565</td></tr>
+    <tr><td class="gt_row gt_center">30</td>
+<td class="gt_row gt_center">94</td>
+<td class="gt_row gt_center">GUAINÍA</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">Articulo 309 Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">21.1790495</td>
+<td class="gt_row gt_center">5.747937887</td>
+<td class="gt_row gt_center">2764</td></tr>
+    <tr><td class="gt_row gt_center">31</td>
+<td class="gt_row gt_center">95</td>
+<td class="gt_row gt_center">GUAVIARE</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">5 de Julio Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">19.3967890</td>
+<td class="gt_row gt_center">4.511457244</td>
+<td class="gt_row gt_center">5586</td></tr>
+    <tr><td class="gt_row gt_center">32</td>
+<td class="gt_row gt_center">97</td>
+<td class="gt_row gt_center">VAUPÉS</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">Articulo 309 Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">20.1298337</td>
+<td class="gt_row gt_center">4.313810177</td>
+<td class="gt_row gt_center">1888</td></tr>
+    <tr><td class="gt_row gt_center">33</td>
+<td class="gt_row gt_center">99</td>
+<td class="gt_row gt_center">VICHADA</td>
+<td class="gt_row gt_center">1991</td>
+<td class="gt_row gt_center">5 de Julio Constitucion Politica de 1991</td>
+<td class="gt_row gt_center">2017</td>
+<td class="gt_row gt_center">17.2926130</td>
+<td class="gt_row gt_center">8.100680491</td>
+<td class="gt_row gt_center">3398</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p><br>
+Posteriormente, se extraen las coordenadas de los centroides de cade departamento, para propositos de ubicación de etiquetas en el mapa, siguiendo las siguientes líneas de código.</p>
+<pre class="r"><code>ctd &lt;- st_coordinates(st_centroid(covid19col)) %&gt;% 
+  as_tibble()</code></pre>
+<pre><code>## Warning in st_centroid.sf(covid19col): st_centroid assumes attributes are
+## constant over geometries of x</code></pre>
+<pre class="r"><code>ctd$Dpto &lt;- covid19col$DPTO_CNMBR
+ctd$Contagios &lt;- covid19col$Contagios</code></pre>
+<p>Finalmente se genera el mapa de contagios de contagios totales de COVID-19 para cada departamento de Colombia, con las funcionalidades del paquete <strong>ggplot2</strong> (Figura 3), agregando los elementos discutidos en otros post y algunos nuevos que por intuición se puede conocer que aspecto configuran del gráfico.</p>
+<pre class="r"><code>ggplot() +
+  geom_sf(data = covid19col, mapping = aes(fill = Contagios)) +
+  scale_fill_gradientn(name = &quot;No.total \n de contagios&quot;, 
+                       colours = brewer.pal(n = 9, name = &quot;Reds&quot;), 
+                       na.value = &quot;white&quot;, n.breaks = 9) +
+  annotation_north_arrow(location = &quot;tr&quot;, 
+                         which_north = &quot;true&quot;, 
+                         style = north_arrow_fancy_orienteering) + 
+  annotation_scale(location = &quot;bl&quot;) +
+  geom_text_repel(data = ctd, 
+                  mapping = aes(x = X, y = Y, label = paste(Dpto, &quot;\n&quot;, Contagios)), 
+                  size = 2, 
+                  bg.color = &quot;white&quot;, 
+                  bg.r = 0.05, 
+                  max.overlaps = 30) +
+  labs(title = &quot;TOTAL DE CONTAGIOS DE COVID-19 EN COLOMBIA&quot;, 
+       caption = &quot;Datos del Instituto Nacional de Salud (INS). \n Corte al 33 de abril de 2022&quot;, 
+       x = &quot;Oeste&quot;, y = &quot;Norte&quot;) +
+  theme_bw() +
+  theme(legend.position = &quot;bottom&quot;, 
+        legend.key.width = unit(x = 4, units = &quot;line&quot;))</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/unnamed-chunk-10-1.png" width="528" style="display: block; margin: auto;" />
+<p align="center">
+Figura 3. Total de contagios por COVID-19 en Colombia.
+</p>
