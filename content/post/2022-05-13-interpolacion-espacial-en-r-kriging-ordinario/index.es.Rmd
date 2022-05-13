@@ -1,0 +1,311 @@
+---
+title: 'Interpolación espacial en R: Kriging ordinario'
+author: Luis Díaz Chávez
+date: '2022-05-13'
+slug: interpolacion-espacial-en-r-kriging-ordinario
+categories:
+  - R
+tags:
+  - Data Science
+  - ggplot
+  - plot
+  - R
+  - rspatial
+  - Spatial Analyst
+subtitle: ''
+summary: ''
+authors: []
+lastmod: '2022-05-13T12:10:33-05:00'
+featured: no
+image:
+  caption: ''
+  focal_point: ''
+  preview_only: no
+projects: []
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(gt)
+library(tidyverse)
+
+```
+
+En el post anterior, discutimos la ruta metodológica para realizar la interpolación de datos usando el método del Inverso de la Distancia Ponderada (IDW por sus siglas en inglés). Así mismo, se expuso que la naturaleza determinística de este procedimiento por basar las estimaciones de una variable objetivo en una ecuación de cómputo dependiende la distancia entre los puntos con valores conocidos para la variable.
+
+En esta ocasión, trataremos de manera suscinta, a través de ejemplos simples, la aplicación de métodos geoestadísticos de interpolación espacial, especifícamente Kriging Ordinario, el más comun y sencillo de entender de todos los métodos que pertemecen a esta familia.
+
+En general, en kriging se realizan ponderaciones de los valores medidos en ubicaciones (locaciones) circundantes para calcular la predicción de una ubicación sin mediciones, ajustados a la siguiente expresión de cálculo:
+
+$$\hat{Z}(s_{0}) = \sum_{i = 1}^{N}{\lambda_{i}Z(s_{i})}$$
+
+donde
+
+- $Z(s_{i})$ es el valor medido en la ubicación $i$
+- $\lambda_{i}$ es una ponderación desconocida para el valor medido en la ubicaión $i$
+- $s_{0}$ es la ubicación de predicción
+- $N$ es la cantidad de ubicaciones donde se tiene mediciones
+
+De esta expresión, es notable el parecido que posee con IDW. No obstante, la principal diferencia etre estas dos metodologías se presenta en la forma en que se realizan las ponderaciones; como se mencionó antes, IDW las realiza sobre la base del inverso de las distancia que existe entre las locaciones a estimar y las locaciones con mediciones conocidas para la variable en cuestión. Por su parte, en kriging las ponderaciones están basadas no solo en la distancia entre los puntos medidos y la ubicación de la predicción, sino también en la disposición espacial general de los puntos medidos.
+
+Por lo anterior, debe ser cuantificada la correlación espacial, de tal manera que la ponderación, $\lambda_{i}$, dependa de un modelo ajustado a los puntos medidos, la distancia a la ubicación de la predicción y las relaciones espaciales entre los valores medidos alrededor de la ubicación de la predicción. Esta modelación se realiza mediante el análisis del variograma experimental de los datos, determinado de la siguiente ecuación
+
+$$\gamma(h) = \frac{1}{2N}\sum_{i = 1}^{N}[Z(x_{i} + h) - Z(x_{i})]^2$$
+En la Figura 1, se muestra una representación gráfica del variograma experimental y sus características.
+
+<p align = "center">
+<img width = "400" src = "https://www.researchgate.net/profile/Teresita-Betancur/publication/26504422/figure/fig3/AS:667664766758921@1536195093771/Figura-4-Principales-elementos-del-Variograma-Mejia-2006-Figure-4-Main-variogram_W640.jpg">
+</p>
+<p align = "center">Figura 1. Características del variograama experimental.</p>
+
+Sobre el variograma experimental se debe ajustar el modelo teórico (Figura 2) que mejor se ajuste a la variabilidad inherente a cada conjunto de datos.
+
+```{r, echo = FALSE, fig.align = "center"}
+
+library(gstat)
+show.vgms()
+
+```
+<p align = "center">Figura 2. Variogramas experimentales disponibles en el paquete {gstat}.</p>
+
+Como se ha vuelto tradicional en este blog, la mejor forma de entender lo expuesto es mediante un ejemplo. 
+
+# Lectura y formateo de los datos
+
+En esta ocasión realizaremos el modelado geoestadístico, mediante kriging ordinario, de los datos de concentración de NO~2~ (Tabla 1) en la atmósfera para 74 estaciones de muestreo en Alemania, disponibles con el paquete **gstat**.
+
+```{r, echo = TRUE}
+
+library(gstat)
+
+no2 <- read_csv(system.file("external/no2.csv", package = "gstat"))
+
+```
+
+<p>Tabla 1. Mediciones de concentración de NO~2~ en Alemania (última columna).</p>
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+
+gt(data = no2) %>% 
+  tab_options(container.height = px(x = 500),container.overflow.y = TRUE, table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold") %>%
+  cols_align(align = "center")
+
+```
+
+<br>
+Así mismo, cargaremos los límites geográficos de Alemania para examinar el contexto de la distribución espacial de los puntos (ubicaciones) de medición (Figura 3).
+
+```{r, echo = TRUE, results = 'hide', message = FALSE, warning = FALSE}
+library(sf)
+library(spacetime) # Contiene los límites espaciales de Alemania en un objeto llamado DE_NUTS1.
+library(tidyverse)
+
+data(air, package = "spacetime")
+
+alm <- DE_NUTS1 %>% 
+  st_as_sf() %>% 
+  st_transform(crs = "EPSG:32632")
+
+no2_sf <- no2 %>% 
+  st_as_sf(coords = c("station_longitude_deg","station_latitude_deg"), crs = "OGC:CRS84") %>% 
+  st_transform(crs = "EPSG:32632")
+```
+
+```{r, echo = FALSE, fig.align = "center", fig.retina = 5}
+
+ggplot() +
+  geom_sf(data = alm, fill = NA) +
+  geom_sf(data = no2_sf,color = "red")+
+  theme_bw()
+
+```
+<p align = "center">Figura 3. Distribución espacial de estaciones de medición de concentración de NO~2~ atmosférico.</p> 
+
+Para terminar con esta etapa, crearemos la grilla de inrterpolaciñon a partir de los límites de geográficos del área de estudio (Figura 4).
+
+```{r, echo = TRUE, message = FALSE, warning = FALSE, fig.align = "center"}
+
+library(stars)
+
+alm_grid <- st_as_stars(.x = st_bbox(obj = alm), dx = 500, dy = 500) %>% 
+  st_crop(y = alm)
+
+options(scipen = 10000)
+ggplot() +
+  geom_stars(data = alm_grid, show.legend = FALSE) +
+  scale_fill_gradientn(colours = c("gray60", "gray60"), na.value = NA) +
+  coord_equal() +
+  theme_bw()
+
+```
+<p align = "center">Figura 4. Grilla de interpolación de mediciones de concentración de NO~2~ atomosférico.</p> 
+
+# Análisis exploratorio de datos (EDA)
+
+Una de las particularidades de los métodos geoestadísticos que lo diferencias de los métodos determinísticos, se basa en que la estructura de los datos cumplan ciertos supuestos relativos a la distribución de los datos, especificamente que estos se ajusten a una distribución normal. En este sentido, se han derivado algunos criterios empíricos basados en el análisis descriptivo de los datos. A continuación, mostramos el bloque de código para el cómputo de estos indicadores (Tabla 2).
+
+```{r}
+
+library(e1071) #  Cómputo de medidas de asimetría y kurtosis.
+
+EDA <- st_drop_geometry(x = no2_sf) %>% 
+  summarise(Min = min(NO2),
+            Media = mean(NO2),
+            Mediana = median(NO2),
+            Max = max(NO2),
+            SD = sd(NO2),
+            CV = SD/Media,
+            Q1 = quantile(x = NO2, probs = 0.25),
+            Q3 = quantile(x = NO2, probs = 0.75),
+            IQR = IQR(x = NO2),
+            Asimetría = skewness(x = NO2),
+            Kurtosis = kurtosis(x = NO2))
+
+```
+
+Tabla 2. Análisis exploratorio de las mediciones de NO~2~ atmosférico. 
+```{r, echo = FALSE}
+
+gt(data = EDA) %>% 
+  tab_options( table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold") %>%
+  cols_align(align = "center")
+
+```
+
+<br>
+En general como reglas empíricas para aceptar la distribución de los datos, se busca que los valores de la media y la mediana sean "iguales", o al menos tan cercanos que su cociente se aproxime a la unidad; se buca que que la asimetría se ubique en el rango $-0.5 \leq A_{s} \leq 0.5$, indicativo de ausencia de sesgo en la distribución de los datos y, que la kurtosis se encuentre en el rango $-2.5 \leq A_{s} \leq 3.5$, asociado a forma mesocurtica (normal) de la curva de densidad de los datos.
+
+En el contexto de las mediciones de NO~2~ se evidencia que la media, la mediana y la asimetría se encuentra por fuera de los rangos mencionados, acusando, en el caso de la asimetría ($A_{s}$) la existencia de sesgo positivo o de cola derecha para la curva de densidad de probabilidad de esta variable, misma que se puede explorar de forma gráfica (Figura 5).
+
+```{r, echo = TRUE, message = FALSE, warning = FALSE, fig.align = "center"}
+
+ggplot(data = no2_sf, mapping = aes(x = NO2, y = ..density..)) +
+  geom_histogram(fill = "gray60") +
+  geom_density(colour = "red") +
+  labs(x = NULL, y = "Densidad") +
+  theme_bw()
+
+```
+<p align = "center">Figura 5. Distribución de probabilidad de mediciones de concentración de NO~2~ atmosférico.</p> 
+
+Si bien, los criterios anteriores sirven para disgnósticar la estructura de los datos, la rigurosidad de los procesos, al menos desde una visión particular, amerita que se apliquen pruebas formales de inferencia estadística para conocer con suficiente grado de confiabilidad si los datos se ajustan o no a una distribución normal. Para el caso este caso, serían buenos referentes los resultados que se obtengan de la ejecución de los test de Shapiro-Wilk ($n \leq 30$) o el test de Kolmogoriov-Smirnof con corrección de Lilliefors ($n > 30$), como se muestra a continuación.
+
+```{r}
+
+library(nortest) # Funciones para testear la normalidad de los datos
+
+lillie.test(x = no2_sf$NO2)
+
+```
+
+Como el $p-valor$ es menor que el 5% de nivel de significancia  ($\alpha = 0.05$), existe evidencia suficiente para rechazar la hipótesis de normalidad de las observaciones (mediciones) de NO~2~ atmosférico con una confiabilidad del 95%.
+
+Lo anterior, es una muestra concreta que la estructura de los datos no cumple con los requisitos para continuar con el modelado, mediante kriging, de los datos. Como una ruta para solventar esta falta de ajuste en los datos, una alternativa viable podría ser la transformación de los datos, por ejemplo a escala logarítmica y explorar los datos nuevamente (Tabla 3).
+
+```{r}
+
+EDA_trans <- st_drop_geometry(x = no2_sf) %>% 
+  summarise(Min = min(log(NO2)),
+            Media = mean(log(NO2)),
+            Mediana = median(log(NO2)),
+            Max = max(log(NO2)),
+            SD = sd(log(NO2)),
+            CV = SD/Media,
+            Q1 = quantile(x = log(NO2), probs = 0.25),
+            Q3 = quantile(x = log(NO2), probs = 0.75),
+            IQR = IQR(x = log(NO2)),
+            Asimetría = skewness(x = log(NO2)),
+            Kurtosis = kurtosis(x = log(NO2)))
+
+```
+
+Tabla 3. Análisis exploratorio de las mediciones de NO~2~ atmosférico con transformación logarítmica. 
+```{r}
+
+gt(data = EDA_trans) %>% 
+  tab_options( table.width = pct(x = 100), table.align = "center", column_labels.font.weight = "bold") %>%
+  cols_align(align = "center")
+
+```
+
+<br>
+Nótese que luego de la transformación, los datos se sitúan dentro de los rangos empírico señalados, con el consecuente efecto positivo sobre la simetría de la curva distribución de probabilidad (Figura 6).
+
+```{r, echo = TRUE, message = FALSE, warning = FALSE, fig.align = "center"}
+
+ggplot(data = no2_sf, mapping = aes(x = log(NO2), y = ..density..)) +
+  geom_histogram(fill = "gray60") +
+  geom_density(colour = "red") +
+  labs(x = NULL, y = "Log(Densidad)") +
+  theme_bw()
+
+```
+<p align = "center">Figura 6. Distribución de probabilidad de mediciones de concentración de NO~2~ atmosférico con transformación logarítmica.</p>
+
+Formalmente, la ejecución del test de Kolmogorov-Smirnov con corrección de Lilliefors es cocluyente en el cumplimiento del requisito de normalidad de los datos ($D = 0.075$, $p-valor = 0.38 (> 0.05)$), como se muestra a continuación.
+
+```{r}
+
+lillie.test(x = log(no2_sf$NO2))
+
+```
+
+# Análisis variográfico
+
+Verificados los requisitos sobre la estructura de las observaciones luego de su transformación, el siguiente paso dentro del análisis consiste en determinar el variograma experimental de los datos y sobre este ajustar un modelo de variograma teórico. Aquí, nos apoyaremos de las funciones `variogram()` del paquete **gstat** y `autofitvariogram()` **automap**.
+
+Iniciaremos esta parte del análisis con la construcción del variograma experimental de las mediciones de NO~2~ (Figura 7) de acuerdo a las siguientes líneas de código.
+
+```{r, echo = TRUE, message = FALSE, warning = FALSE, fig.align = "center"}
+
+vgm <- variogram(object = log(NO2) ~ 1, locations = no2_sf)
+
+ggplot(data = vgm, mapping = aes(x = dist, y = gamma)) +
+  geom_point(colour = "blue") +
+  labs(x = "Distancia", y = expression(gamma(h))) +
+  theme_bw()
+
+```
+<p align = "center">Figura 7. Variograma experimental para mediciones de concentración de NO~2~ atmosférico con transformación logarítmica.</p>
+
+Nótese que en adelante el modelado de los datos lo realizaremos con las observaciones en escala logarítmica. 
+
+Del patrón variográfico mostrado en la Figura 7, se debe ajustar cualquiera de los modelos teóricos ilustrados en la Figura 2, teniendo en cuenta las características expuestas en la Figura 1. De estos los modelos Esférico o circular, pudieran ser elecciones adecuadas. Sin embargo, exploremos el ajuste automatizado que realiza la función `autofitvariogram()` (Figura 8).
+
+```{r, echo = TRUE, message = FALSE, warning = FALSE, fig.align = "center"}
+
+library(automap)
+
+vgm_fit <- autofitVariogram(formula = log(NO2) ~ 1, input_data = as(object = no2_sf, Class = "Spatial"))
+
+vgmline <- variogramLine(object = vgm_fit$var_model, maxdist = max(vgm$dist)) # Extrae la curva ajustada del modelo para fines de ploteo
+
+ggplot(data = vgm, mapping = aes(x = dist, y = gamma)) +
+  geom_point(colour = "blue") +
+  geom_line(data = vgmline, colour = "red") +
+  labs(x = "Distancia", y = expression(gamma(h))) +
+  theme_bw()
+
+```
+<p align = "center">Figura 8. Variograma teórico para mediciones de concentración de NO~2~ atmosférico con transformación logarítmica.</p>
+
+Dado que la función `autofitvariogram()` no trabaja con objetos _sf_ en su argumento _input_data_, se coerciona a que _no2_sf_ sea transformado a un objeto _sp_ (Spatial) mediante el uso de la función `as()` del base de R.
+
+Finalmente, se realiza la interpolación mediante kriging ordinario (Figura 9), de acuerdo a la siguiente línea de código.
+
+```{r}
+
+ok = krige(formula = log(NO2)~1, 
+           locations = no2_sf, 
+           newdata = alm_grid, 
+           model = vgm_fit$var_model)
+ggplot() +
+  geom_stars(data = exp(ok), mapping = aes(x = x, y = y, fill = var1.pred)) +
+  geom_sf(data = alm, fill = NA)  +
+  scale_fill_distiller(name = expression(NO[2]), palette = "Spectral", na.value = NA) +
+  labs(x = "", y = "") +
+  theme_bw()
+```
+<p align = "center">Figura 9. Mediciones de concentración de NO~2~ atmosférico interpoladas para la superficie de Alemania.</p>
+
+Note que se transformaron las observaciones a su escala original en el `geom_stars()`.

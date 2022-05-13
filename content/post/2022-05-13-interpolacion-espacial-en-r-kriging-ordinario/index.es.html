@@ -1,0 +1,3128 @@
+---
+title: 'Interpolación espacial en R: Kriging ordinario'
+author: Luis Díaz Chávez
+date: '2022-05-13'
+slug: interpolacion-espacial-en-r-kriging-ordinario
+categories:
+  - R
+tags:
+  - Data Science
+  - ggplot
+  - plot
+  - R
+  - rspatial
+  - Spatial Analyst
+subtitle: ''
+summary: ''
+authors: []
+lastmod: '2022-05-13T12:10:33-05:00'
+featured: no
+image:
+  caption: ''
+  focal_point: ''
+  preview_only: no
+projects: []
+---
+
+
+
+<p>En el post anterior, discutimos la ruta metodológica para realizar la interpolación de datos usando el método del Inverso de la Distancia Ponderada (IDW por sus siglas en inglés). Así mismo, se expuso que la naturaleza determinística de este procedimiento por basar las estimaciones de una variable objetivo en una ecuación de cómputo dependiende la distancia entre los puntos con valores conocidos para la variable.</p>
+<p>En esta ocasión, trataremos de manera suscinta, a través de ejemplos simples, la aplicación de métodos geoestadísticos de interpolación espacial, especifícamente Kriging Ordinario, el más comun y sencillo de entender de todos los métodos que pertemecen a esta familia.</p>
+<p>En general, en kriging se realizan ponderaciones de los valores medidos en ubicaciones (locaciones) circundantes para calcular la predicción de una ubicación sin mediciones, ajustados a la siguiente expresión de cálculo:</p>
+<p><span class="math display">\[\hat{Z}(s_{0}) = \sum_{i = 1}^{N}{\lambda_{i}Z(s_{i})}\]</span></p>
+<p>donde</p>
+<ul>
+<li><span class="math inline">\(Z(s_{i})\)</span> es el valor medido en la ubicación <span class="math inline">\(i\)</span></li>
+<li><span class="math inline">\(\lambda_{i}\)</span> es una ponderación desconocida para el valor medido en la ubicaión <span class="math inline">\(i\)</span></li>
+<li><span class="math inline">\(s_{0}\)</span> es la ubicación de predicción</li>
+<li><span class="math inline">\(N\)</span> es la cantidad de ubicaciones donde se tiene mediciones</li>
+</ul>
+<p>De esta expresión, es notable el parecido que posee con IDW. No obstante, la principal diferencia etre estas dos metodologías se presenta en la forma en que se realizan las ponderaciones; como se mencionó antes, IDW las realiza sobre la base del inverso de las distancia que existe entre las locaciones a estimar y las locaciones con mediciones conocidas para la variable en cuestión. Por su parte, en kriging las ponderaciones están basadas no solo en la distancia entre los puntos medidos y la ubicación de la predicción, sino también en la disposición espacial general de los puntos medidos.</p>
+<p>Por lo anterior, debe ser cuantificada la correlación espacial, de tal manera que la ponderación, <span class="math inline">\(\lambda_{i}\)</span>, dependa de un modelo ajustado a los puntos medidos, la distancia a la ubicación de la predicción y las relaciones espaciales entre los valores medidos alrededor de la ubicación de la predicción. Esta modelación se realiza mediante el análisis del variograma experimental de los datos, determinado de la siguiente ecuación</p>
+<p><span class="math display">\[\gamma(h) = \frac{1}{2N}\sum_{i = 1}^{N}[Z(x_{i} + h) - Z(x_{i})]^2\]</span>
+En la Figura 1, se muestra una representación gráfica del variograma experimental y sus características.</p>
+<p align="center">
+<img width = "400" src = "https://www.researchgate.net/profile/Teresita-Betancur/publication/26504422/figure/fig3/AS:667664766758921@1536195093771/Figura-4-Principales-elementos-del-Variograma-Mejia-2006-Figure-4-Main-variogram_W640.jpg">
+</p>
+<p align="center">
+Figura 1. Características del variograama experimental.
+</p>
+<p>Sobre el variograma experimental se debe ajustar el modelo teórico (Figura 2) que mejor se ajuste a la variabilidad inherente a cada conjunto de datos.</p>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/unnamed-chunk-1-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 2. Variogramas experimentales disponibles en el paquete {gstat}.
+</p>
+<p>Como se ha vuelto tradicional en este blog, la mejor forma de entender lo expuesto es mediante un ejemplo.</p>
+<div id="lectura-y-formateo-de-los-datos" class="section level1">
+<h1>Lectura y formateo de los datos</h1>
+<p>En esta ocasión realizaremos el modelado geoestadístico, mediante kriging ordinario, de los datos de concentración de NO<sub>2</sub> (Tabla 1) en la atmósfera para 74 estaciones de muestreo en Alemania, disponibles con el paquete <strong>gstat</strong>.</p>
+<pre class="r"><code>library(gstat)
+
+no2 &lt;- read_csv(system.file(&quot;external/no2.csv&quot;, package = &quot;gstat&quot;))</code></pre>
+<pre><code>## Rows: 74 Columns: 21
+## -- Column specification --------------------------------------------------------
+## Delimiter: &quot;,&quot;
+## chr  (13): station_european_code, station_local_code, country_iso_code, coun...
+## dbl   (6): station_longitude_deg, station_latitude_deg, station_altitude, la...
+## lgl   (1): station_end_date
+## date  (1): station_start_date
+## 
+## i Use `spec()` to retrieve the full column specification for this data.
+## i Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<p>
+Tabla 1. Mediciones de concentración de NO<sub>2</sub> en Alemania (última columna).
+</p>
+<div id="wfnjzhgpkr" style="overflow-x:auto;overflow-y:auto;width:auto;height:500px;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#wfnjzhgpkr .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: 100%;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#wfnjzhgpkr .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#wfnjzhgpkr .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#wfnjzhgpkr .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#wfnjzhgpkr .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#wfnjzhgpkr .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#wfnjzhgpkr .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#wfnjzhgpkr .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#wfnjzhgpkr .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#wfnjzhgpkr .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#wfnjzhgpkr .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#wfnjzhgpkr .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#wfnjzhgpkr .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#wfnjzhgpkr .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#wfnjzhgpkr .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#wfnjzhgpkr .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#wfnjzhgpkr .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wfnjzhgpkr .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#wfnjzhgpkr .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#wfnjzhgpkr .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wfnjzhgpkr .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#wfnjzhgpkr .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#wfnjzhgpkr .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#wfnjzhgpkr .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wfnjzhgpkr .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#wfnjzhgpkr .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#wfnjzhgpkr .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#wfnjzhgpkr .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#wfnjzhgpkr .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wfnjzhgpkr .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#wfnjzhgpkr .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#wfnjzhgpkr .gt_left {
+  text-align: left;
+}
+
+#wfnjzhgpkr .gt_center {
+  text-align: center;
+}
+
+#wfnjzhgpkr .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#wfnjzhgpkr .gt_font_normal {
+  font-weight: normal;
+}
+
+#wfnjzhgpkr .gt_font_bold {
+  font-weight: bold;
+}
+
+#wfnjzhgpkr .gt_font_italic {
+  font-style: italic;
+}
+
+#wfnjzhgpkr .gt_super {
+  font-size: 65%;
+}
+
+#wfnjzhgpkr .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#wfnjzhgpkr .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#wfnjzhgpkr .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#wfnjzhgpkr .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#wfnjzhgpkr .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#wfnjzhgpkr .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">station_european_code</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">station_local_code</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">country_iso_code</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">country_name</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">station_name</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">station_start_date</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">station_end_date</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">type_of_station</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">station_ozone_classification</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">station_type_of_area</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">station_subcat_rural_back</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">street_type</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">station_longitude_deg</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">station_latitude_deg</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">station_altitude</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">station_city</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">lau_level1_code</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">lau_level2_code</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">lau_level2_name</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">EMEP_station</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">NO2</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_center">DENI063</td>
+<td class="gt_row gt_center">DENI063</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Altes Land</td>
+<td class="gt_row gt_center">1999-02-11</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">9.685031</td>
+<td class="gt_row gt_center">53.52418</td>
+<td class="gt_row gt_center">3</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">3359028</td>
+<td class="gt_row gt_center">Jork</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">13.102806</td></tr>
+    <tr><td class="gt_row gt_center">DEBY109</td>
+<td class="gt_row gt_center">DEBY109</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Andechs/Rothenfeld</td>
+<td class="gt_row gt_center">2003-04-17</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">11.220172</td>
+<td class="gt_row gt_center">47.96875</td>
+<td class="gt_row gt_center">700</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">9188117</td>
+<td class="gt_row gt_center">Andechs</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">7.135128</td></tr>
+    <tr><td class="gt_row gt_center">DEBE056</td>
+<td class="gt_row gt_center">DEBE056</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">B Friedrichshagen</td>
+<td class="gt_row gt_center">1994-02-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">near city</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">13.647050</td>
+<td class="gt_row gt_center">52.44770</td>
+<td class="gt_row gt_center">35</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">11000000</td>
+<td class="gt_row gt_center">Berlin, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">12.799011</td></tr>
+    <tr><td class="gt_row gt_center">DEBE062</td>
+<td class="gt_row gt_center">DEBE062</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">B Frohnau, Funkturm (3.5 m)</td>
+<td class="gt_row gt_center">1996-02-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">near city</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">13.296081</td>
+<td class="gt_row gt_center">52.65327</td>
+<td class="gt_row gt_center">50</td>
+<td class="gt_row gt_center">BERLIN</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">11000000</td>
+<td class="gt_row gt_center">Berlin, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">11.830894</td></tr>
+    <tr><td class="gt_row gt_center">DEBE032</td>
+<td class="gt_row gt_center">DEBE032</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">B Grunewald (3.5 m)</td>
+<td class="gt_row gt_center">1986-10-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">near city</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">13.225144</td>
+<td class="gt_row gt_center">52.47319</td>
+<td class="gt_row gt_center">50</td>
+<td class="gt_row gt_center">BERLIN</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">11000000</td>
+<td class="gt_row gt_center">Berlin, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">11.980110</td></tr>
+    <tr><td class="gt_row gt_center">DEHE046</td>
+<td class="gt_row gt_center">DEHE046</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Bad Arolsen</td>
+<td class="gt_row gt_center">1999-05-11</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">8.928172</td>
+<td class="gt_row gt_center">51.43090</td>
+<td class="gt_row gt_center">343</td>
+<td class="gt_row gt_center">BAD AROLSEN/KOHLGRUND</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6635002</td>
+<td class="gt_row gt_center">Bad Arolsen, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">8.935611</td></tr>
+    <tr><td class="gt_row gt_center">DEBY122</td>
+<td class="gt_row gt_center">DEBY122</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Bad Hindelang/Oberjoch</td>
+<td class="gt_row gt_center">2010-06-21</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">10.404233</td>
+<td class="gt_row gt_center">47.51801</td>
+<td class="gt_row gt_center">1169</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">9780123</td>
+<td class="gt_row gt_center">Bad Hindelang, M</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">7.020690</td></tr>
+    <tr><td class="gt_row gt_center">DESL019</td>
+<td class="gt_row gt_center">DESL019</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Biringen</td>
+<td class="gt_row gt_center">2003-02-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6.552036</td>
+<td class="gt_row gt_center">49.41689</td>
+<td class="gt_row gt_center">339</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">10044114</td>
+<td class="gt_row gt_center">Rehlingen-Siersburg</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">9.226796</td></tr>
+    <tr><td class="gt_row gt_center">DENW081</td>
+<td class="gt_row gt_center">DENW081</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Borken-Gemen</td>
+<td class="gt_row gt_center">1998-09-11</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">near city</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6.874553</td>
+<td class="gt_row gt_center">51.86200</td>
+<td class="gt_row gt_center">45</td>
+<td class="gt_row gt_center">BORKEN</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">5554012</td>
+<td class="gt_row gt_center">Borken, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">18.700023</td></tr>
+    <tr><td class="gt_row gt_center">DESH008</td>
+<td class="gt_row gt_center">DESH008</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Bornhöved</td>
+<td class="gt_row gt_center">1988-11-08</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">10.240596</td>
+<td class="gt_row gt_center">54.09323</td>
+<td class="gt_row gt_center">45</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">10575785</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Ruhwinkel</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">9.159836</td></tr>
+    <tr><td class="gt_row gt_center">DESN093</td>
+<td class="gt_row gt_center">DESN093</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Brockau</td>
+<td class="gt_row gt_center">2011-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">12.211111</td>
+<td class="gt_row gt_center">50.60813</td>
+<td class="gt_row gt_center">430</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">145235120</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Netzschkau, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">8.547994</td></tr>
+    <tr><td class="gt_row gt_center">DEST039</td>
+<td class="gt_row gt_center">DEST039</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Brocken</td>
+<td class="gt_row gt_center">1993-01-28</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">remote</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">10.618275</td>
+<td class="gt_row gt_center">51.79863</td>
+<td class="gt_row gt_center">1142</td>
+<td class="gt_row gt_center">SCHIERKE</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">3.589326</td></tr>
+    <tr><td class="gt_row gt_center">DEHE039</td>
+<td class="gt_row gt_center">DEHE039</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Burg Herzberg (Grebenau)</td>
+<td class="gt_row gt_center">1983-05-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">9.459403</td>
+<td class="gt_row gt_center">50.77038</td>
+<td class="gt_row gt_center">491</td>
+<td class="gt_row gt_center">HERZBERG</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6632004</td>
+<td class="gt_row gt_center">Breitenbach a. Herzberg</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">8.400254</td></tr>
+    <tr><td class="gt_row gt_center">DEBY124</td>
+<td class="gt_row gt_center">DEBY124</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Burgbernheim/Am Hessinggraben</td>
+<td class="gt_row gt_center">2012-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">10.316582</td>
+<td class="gt_row gt_center">49.44452</td>
+<td class="gt_row gt_center">384</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">12.012725</td></tr>
+    <tr><td class="gt_row gt_center">DESN076</td>
+<td class="gt_row gt_center">DESN076</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Collmberg</td>
+<td class="gt_row gt_center">1998-10-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">remote</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">13.009405</td>
+<td class="gt_row gt_center">51.30377</td>
+<td class="gt_row gt_center">313</td>
+<td class="gt_row gt_center">COLLM</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">14730330</td>
+<td class="gt_row gt_center">Wermsdorf</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">8.636825</td></tr>
+    <tr><td class="gt_row gt_center">DEST104</td>
+<td class="gt_row gt_center">DEST104</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Domäne Bobbe</td>
+<td class="gt_row gt_center">2009-12-17</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">11.891525</td>
+<td class="gt_row gt_center">51.83728</td>
+<td class="gt_row gt_center">71</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">15082256</td>
+<td class="gt_row gt_center">Osternienburger Land</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">9.354437</td></tr>
+    <tr><td class="gt_row gt_center">DETH026</td>
+<td class="gt_row gt_center">DETH026</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Dreißigacker</td>
+<td class="gt_row gt_center">1991-07-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">10.375300</td>
+<td class="gt_row gt_center">50.56175</td>
+<td class="gt_row gt_center">450</td>
+<td class="gt_row gt_center">DREIßIGACKER</td>
+<td class="gt_row gt_center">160665050</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Meiningen, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">8.995248</td></tr>
+    <tr><td class="gt_row gt_center">DEBW004</td>
+<td class="gt_row gt_center">DEBW004</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Eggenstein</td>
+<td class="gt_row gt_center">1976-09-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">near city</td>
+<td class="gt_row gt_center">Unknown</td>
+<td class="gt_row gt_center">8.406660</td>
+<td class="gt_row gt_center">49.07655</td>
+<td class="gt_row gt_center">109</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">8215102</td>
+<td class="gt_row gt_center">Eggenstein-Leopoldshafen</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">20.493843</td></tr>
+    <tr><td class="gt_row gt_center">DENI059</td>
+<td class="gt_row gt_center">DENI059</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Elbmündung</td>
+<td class="gt_row gt_center">1998-03-20</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">8.801220</td>
+<td class="gt_row gt_center">53.83017</td>
+<td class="gt_row gt_center">3</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">3352011</td>
+<td class="gt_row gt_center">Cuxhaven, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">11.104790</td></tr>
+    <tr><td class="gt_row gt_center">DEUB046</td>
+<td class="gt_row gt_center">DEUB046</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Forellenbach</td>
+<td class="gt_row gt_center">2000-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">remote</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">13.420573</td>
+<td class="gt_row gt_center">48.94761</td>
+<td class="gt_row gt_center">858</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">92729444</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Gdefr. Geb. (Lkr Freyung-Grafenau)</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">4.333946</td></tr>
+    <tr><td class="gt_row gt_center">DEHE028</td>
+<td class="gt_row gt_center">DEHE028</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Fürth/Odenwald</td>
+<td class="gt_row gt_center">1986-10-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">8.817250</td>
+<td class="gt_row gt_center">49.65346</td>
+<td class="gt_row gt_center">484</td>
+<td class="gt_row gt_center">FÜRTH/ODENWALD</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6431007</td>
+<td class="gt_row gt_center">Fürth</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">8.120225</td></tr>
+    <tr><td class="gt_row gt_center">DEMV026</td>
+<td class="gt_row gt_center">DEMV026</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Garz</td>
+<td class="gt_row gt_center">2013-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">13.342138</td>
+<td class="gt_row gt_center">54.32351</td>
+<td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">4.383777</td></tr>
+    <tr><td class="gt_row gt_center">DETH040</td>
+<td class="gt_row gt_center">DETH040</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Großer Eisenberg</td>
+<td class="gt_row gt_center">1994-12-04</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">remote</td>
+<td class="gt_row gt_center">Wide street: L/H &gt; 1.5</td>
+<td class="gt_row gt_center">10.787137</td>
+<td class="gt_row gt_center">50.61918</td>
+<td class="gt_row gt_center">907</td>
+<td class="gt_row gt_center">EISENACH</td>
+<td class="gt_row gt_center">160705008</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Schmiedefeld am Rennsteig</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">4.390459</td></tr>
+    <tr><td class="gt_row gt_center">DEMV017</td>
+<td class="gt_row gt_center">DEMV017</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Göhlen</td>
+<td class="gt_row gt_center">1998-02-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">11.362965</td>
+<td class="gt_row gt_center">53.30235</td>
+<td class="gt_row gt_center">25</td>
+<td class="gt_row gt_center">GÖHLEN</td>
+<td class="gt_row gt_center">130545416</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Göhlen</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">6.004552</td></tr>
+    <tr><td class="gt_row gt_center">DEMV004</td>
+<td class="gt_row gt_center">DEMV004</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Gülzow</td>
+<td class="gt_row gt_center">1992-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">12.064709</td>
+<td class="gt_row gt_center">53.81777</td>
+<td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">130535313</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Gülzow-Prüzen</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">6.843801</td></tr>
+    <tr><td class="gt_row gt_center">DEBB053</td>
+<td class="gt_row gt_center">DEBB053</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Hasenholz</td>
+<td class="gt_row gt_center">2000-11-21</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">14.015253</td>
+<td class="gt_row gt_center">52.56383</td>
+<td class="gt_row gt_center">88</td>
+<td class="gt_row gt_center">BUCKOW</td>
+<td class="gt_row gt_center">120645408</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Buckow (Märkische Schweiz), Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">9.110279</td></tr>
+    <tr><td class="gt_row gt_center">DETH061</td>
+<td class="gt_row gt_center">DETH061</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Hummelshain</td>
+<td class="gt_row gt_center">1999-10-07</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">remote</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">11.661233</td>
+<td class="gt_row gt_center">50.79162</td>
+<td class="gt_row gt_center">357</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">160745007</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Trockenborn-Wolfersdorf</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">5.704373</td></tr>
+    <tr><td class="gt_row gt_center">DERP014</td>
+<td class="gt_row gt_center">DERP014</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Hunsrück-Leisel</td>
+<td class="gt_row gt_center">1984-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">7.193486</td>
+<td class="gt_row gt_center">49.74103</td>
+<td class="gt_row gt_center">650</td>
+<td class="gt_row gt_center">LEISEL</td>
+<td class="gt_row gt_center">71345002</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Siesbach</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">5.223882</td></tr>
+    <tr><td class="gt_row gt_center">DENI031</td>
+<td class="gt_row gt_center">DENI031</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Jadebusen</td>
+<td class="gt_row gt_center">1984-06-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">8.090590</td>
+<td class="gt_row gt_center">53.59617</td>
+<td class="gt_row gt_center">2</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">3405000</td>
+<td class="gt_row gt_center">Wilhelmshaven, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">10.450505</td></tr>
+    <tr><td class="gt_row gt_center">DEHE060</td>
+<td class="gt_row gt_center">DEHE060</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Kellerwald</td>
+<td class="gt_row gt_center">2005-10-09</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">9.031753</td>
+<td class="gt_row gt_center">51.15484</td>
+<td class="gt_row gt_center">483</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6635009</td>
+<td class="gt_row gt_center">Edertal</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">6.500547</td></tr>
+    <tr><td class="gt_row gt_center">DEHE052</td>
+<td class="gt_row gt_center">DEHE052</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Kleiner Feldberg</td>
+<td class="gt_row gt_center">1992-03-12</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">8.446078</td>
+<td class="gt_row gt_center">50.22194</td>
+<td class="gt_row gt_center">811</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6434003</td>
+<td class="gt_row gt_center">Glashütten</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">6.913817</td></tr>
+    <tr><td class="gt_row gt_center">DEBY004</td>
+<td class="gt_row gt_center">DEBY004</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Kleinwallstadt/Hofstetter Straße</td>
+<td class="gt_row gt_center">1978-08-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">suburban</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">near city</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">9.171545</td>
+<td class="gt_row gt_center">49.86942</td>
+<td class="gt_row gt_center">124</td>
+<td class="gt_row gt_center">KLEINWALLSTADT</td>
+<td class="gt_row gt_center">96765630</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Kleinwallstadt, M</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">17.107523</td></tr>
+    <tr><td class="gt_row gt_center">DEMV024</td>
+<td class="gt_row gt_center">DEMV024</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Leizen</td>
+<td class="gt_row gt_center">2010-06-16</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">12.463929</td>
+<td class="gt_row gt_center">53.39635</td>
+<td class="gt_row gt_center">116</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">130565621</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Leizen</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">6.520526</td></tr>
+    <tr><td class="gt_row gt_center">DEHE042</td>
+<td class="gt_row gt_center">DEHE042</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Linden/Leihgestern</td>
+<td class="gt_row gt_center">1995-04-05</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">8.684398</td>
+<td class="gt_row gt_center">50.53296</td>
+<td class="gt_row gt_center">172</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6531012</td>
+<td class="gt_row gt_center">Linden, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">17.194002</td></tr>
+    <tr><td class="gt_row gt_center">DEMV012</td>
+<td class="gt_row gt_center">DEMV012</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Löcknitz</td>
+<td class="gt_row gt_center">1994-01-15</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">14.257408</td>
+<td class="gt_row gt_center">53.52046</td>
+<td class="gt_row gt_center">17</td>
+<td class="gt_row gt_center">MEWEGEN</td>
+<td class="gt_row gt_center">130625212</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Rothenklempenow</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">6.572472</td></tr>
+    <tr><td class="gt_row gt_center">DEBB065</td>
+<td class="gt_row gt_center">DEBB065</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Lütte (Belzig)</td>
+<td class="gt_row gt_center">2003-02-14</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">12.561389</td>
+<td class="gt_row gt_center">52.19423</td>
+<td class="gt_row gt_center">111</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">6.568808</td></tr>
+    <tr><td class="gt_row gt_center">DEBY013</td>
+<td class="gt_row gt_center">DEBY013</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Mehring/Sportplatz</td>
+<td class="gt_row gt_center">1977-03-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">12.781385</td>
+<td class="gt_row gt_center">48.18283</td>
+<td class="gt_row gt_center">415</td>
+<td class="gt_row gt_center">MEHRING</td>
+<td class="gt_row gt_center">91715101</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Mehring</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">14.525676</td></tr>
+    <tr><td class="gt_row gt_center">DENW065</td>
+<td class="gt_row gt_center">DENW065</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Netphen (Rothaargebirge)</td>
+<td class="gt_row gt_center">1985-12-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">8.191934</td>
+<td class="gt_row gt_center">50.93033</td>
+<td class="gt_row gt_center">635</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">5970032</td>
+<td class="gt_row gt_center">Netphen, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">5.582891</td></tr>
+    <tr><td class="gt_row gt_center">DENW066</td>
+<td class="gt_row gt_center">DENW066</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Nettetal-Kaldenkirchen</td>
+<td class="gt_row gt_center">1987-12-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">near city</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6.195867</td>
+<td class="gt_row gt_center">51.32694</td>
+<td class="gt_row gt_center">49</td>
+<td class="gt_row gt_center">NETTETAL</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">5166016</td>
+<td class="gt_row gt_center">Nettetal, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">19.600677</td></tr>
+    <tr><td class="gt_row gt_center">DEUB030</td>
+<td class="gt_row gt_center">DEUB030</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Neuglobsow</td>
+<td class="gt_row gt_center">1991-11-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">13.031661</td>
+<td class="gt_row gt_center">53.14130</td>
+<td class="gt_row gt_center">65</td>
+<td class="gt_row gt_center">NEUGLOBSOW</td>
+<td class="gt_row gt_center">120655502</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Stechlin</td>
+<td class="gt_row gt_center">yes</td>
+<td class="gt_row gt_center">4.248033</td></tr>
+    <tr><td class="gt_row gt_center">DETH027</td>
+<td class="gt_row gt_center">DETH027</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Neuhaus</td>
+<td class="gt_row gt_center">1991-08-12</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">remote</td>
+<td class="gt_row gt_center">Unknown</td>
+<td class="gt_row gt_center">11.134591</td>
+<td class="gt_row gt_center">50.49995</td>
+<td class="gt_row gt_center">840</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">160725051</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Neuhaus am Rennweg, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">5.456066</td></tr>
+    <tr><td class="gt_row gt_center">DEBY049</td>
+<td class="gt_row gt_center">DEBY049</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Neustadt a.d. Donau/Eining</td>
+<td class="gt_row gt_center">1977-03-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">11.777817</td>
+<td class="gt_row gt_center">48.85321</td>
+<td class="gt_row gt_center">359</td>
+<td class="gt_row gt_center">NEUSTADT A.D.DONAU</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">9273152</td>
+<td class="gt_row gt_center">Neustadt a.d.Donau, St</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">11.463016</td></tr>
+    <tr><td class="gt_row gt_center">DESN079</td>
+<td class="gt_row gt_center">DESN079</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Niesky</td>
+<td class="gt_row gt_center">2003-05-05</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">14.749731</td>
+<td class="gt_row gt_center">51.28536</td>
+<td class="gt_row gt_center">148</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">146265502</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Quitzdorf am See</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">8.341097</td></tr>
+    <tr><td class="gt_row gt_center">DENI058</td>
+<td class="gt_row gt_center">DENI058</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Ostfries. Inseln</td>
+<td class="gt_row gt_center">1996-02-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">7.213980</td>
+<td class="gt_row gt_center">53.71530</td>
+<td class="gt_row gt_center">5</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">3452020</td>
+<td class="gt_row gt_center">Norderney, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">8.455728</td></tr>
+    <tr><td class="gt_row gt_center">DERP017</td>
+<td class="gt_row gt_center">DERP017</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Pfälzerwald-Hortenkopf</td>
+<td class="gt_row gt_center">1986-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">7.826522</td>
+<td class="gt_row gt_center">49.27026</td>
+<td class="gt_row gt_center">606</td>
+<td class="gt_row gt_center">HORTENKOPF</td>
+<td class="gt_row gt_center">73405004</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Merzalben</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">4.996870</td></tr>
+    <tr><td class="gt_row gt_center">DETH042</td>
+<td class="gt_row gt_center">DETH042</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Possen</td>
+<td class="gt_row gt_center">1996-01-12</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">remote</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">10.867189</td>
+<td class="gt_row gt_center">51.33308</td>
+<td class="gt_row gt_center">420</td>
+<td class="gt_row gt_center">POSSEN</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">16065067</td>
+<td class="gt_row gt_center">Sondershausen, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">5.731506</td></tr>
+    <tr><td class="gt_row gt_center">DESN051</td>
+<td class="gt_row gt_center">DESN051</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Radebeul-Wahnsdorf</td>
+<td class="gt_row gt_center">1967-12-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">near city</td>
+<td class="gt_row gt_center">Unknown</td>
+<td class="gt_row gt_center">13.675006</td>
+<td class="gt_row gt_center">51.11951</td>
+<td class="gt_row gt_center">246</td>
+<td class="gt_row gt_center">RADEBEUL</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">14627210</td>
+<td class="gt_row gt_center">Radebeul, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">12.431592</td></tr>
+    <tr><td class="gt_row gt_center">DEHE043</td>
+<td class="gt_row gt_center">DEHE043</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Riedstadt</td>
+<td class="gt_row gt_center">1996-03-20</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">near city</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">8.516797</td>
+<td class="gt_row gt_center">49.82516</td>
+<td class="gt_row gt_center">87</td>
+<td class="gt_row gt_center">RIEDSTADT</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6433011</td>
+<td class="gt_row gt_center">Riedstadt, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">16.680100</td></tr>
+    <tr><td class="gt_row gt_center">DEUB004</td>
+<td class="gt_row gt_center">DEUB004</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Schauinsland</td>
+<td class="gt_row gt_center">1968-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">7.908036</td>
+<td class="gt_row gt_center">47.91325</td>
+<td class="gt_row gt_center">1205</td>
+<td class="gt_row gt_center">OBERRIED-HOFSGRUND</td>
+<td class="gt_row gt_center">83155003</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Oberried</td>
+<td class="gt_row gt_center">yes</td>
+<td class="gt_row gt_center">2.069318</td></tr>
+    <tr><td class="gt_row gt_center">DEUB029</td>
+<td class="gt_row gt_center">DEUB029</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Schmücke</td>
+<td class="gt_row gt_center">1991-06-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">10.769533</td>
+<td class="gt_row gt_center">50.65407</td>
+<td class="gt_row gt_center">937</td>
+<td class="gt_row gt_center">GEHLBERG</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">yes</td>
+<td class="gt_row gt_center">4.390459</td></tr>
+    <tr><td class="gt_row gt_center">DESN074</td>
+<td class="gt_row gt_center">DESN074</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Schwartenberg</td>
+<td class="gt_row gt_center">1998-02-06</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">13.465077</td>
+<td class="gt_row gt_center">50.65910</td>
+<td class="gt_row gt_center">785</td>
+<td class="gt_row gt_center">NEUHAUSEN</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">14522400</td>
+<td class="gt_row gt_center">Neuhausen/Erzgeb.</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">7.685233</td></tr>
+    <tr><td class="gt_row gt_center">DEBW031</td>
+<td class="gt_row gt_center">DEBW031</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Schwarzwald-Süd</td>
+<td class="gt_row gt_center">1984-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">7.764528</td>
+<td class="gt_row gt_center">47.80989</td>
+<td class="gt_row gt_center">904</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">83155012</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Sulzburg, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">3.438993</td></tr>
+    <tr><td class="gt_row gt_center">DEBW087</td>
+<td class="gt_row gt_center">DEBW087</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Schwäbische_Alb</td>
+<td class="gt_row gt_center">1994-04-27</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">9.207639</td>
+<td class="gt_row gt_center">48.34578</td>
+<td class="gt_row gt_center">798</td>
+<td class="gt_row gt_center">ERPFINGEN</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">8415091</td>
+<td class="gt_row gt_center">Sonnenbühl</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">6.540339</td></tr>
+    <tr><td class="gt_row gt_center">DENW064</td>
+<td class="gt_row gt_center">DENW064</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Simmerath (Eifel)</td>
+<td class="gt_row gt_center">1983-09-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6.281070</td>
+<td class="gt_row gt_center">50.65324</td>
+<td class="gt_row gt_center">572</td>
+<td class="gt_row gt_center">SIMMERATH</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">5334028</td>
+<td class="gt_row gt_center">Simmerath</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">5.509010</td></tr>
+    <tr><td class="gt_row gt_center">DENW068</td>
+<td class="gt_row gt_center">DENW068</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Soest-Ost</td>
+<td class="gt_row gt_center">1989-03-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">near city</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">8.148061</td>
+<td class="gt_row gt_center">51.57066</td>
+<td class="gt_row gt_center">110</td>
+<td class="gt_row gt_center">SOEST</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">5974040</td>
+<td class="gt_row gt_center">Soest, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">12.670415</td></tr>
+    <tr><td class="gt_row gt_center">DENI077</td>
+<td class="gt_row gt_center">DENI077</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Solling-Süd</td>
+<td class="gt_row gt_center">2010-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">9.554620</td>
+<td class="gt_row gt_center">51.70884</td>
+<td class="gt_row gt_center">295</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">31559501</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Solling (Landkreis Northeim), gemfr. Geb.</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">8.401138</td></tr>
+    <tr><td class="gt_row gt_center">DEHE026</td>
+<td class="gt_row gt_center">DEHE026</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Spessart</td>
+<td class="gt_row gt_center">1986-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">9.399442</td>
+<td class="gt_row gt_center">50.16443</td>
+<td class="gt_row gt_center">502</td>
+<td class="gt_row gt_center">SPESSART</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6435016</td>
+<td class="gt_row gt_center">Jossgrund</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">7.538232</td></tr>
+    <tr><td class="gt_row gt_center">DEBB066</td>
+<td class="gt_row gt_center">DEBB066</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Spreewald</td>
+<td class="gt_row gt_center">2003-04-17</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">14.057064</td>
+<td class="gt_row gt_center">51.89760</td>
+<td class="gt_row gt_center">52</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">120615113</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Neu Zauche</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">6.242489</td></tr>
+    <tr><td class="gt_row gt_center">DEBY072</td>
+<td class="gt_row gt_center">DEBY072</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Tiefenbach/Altenschneeberg</td>
+<td class="gt_row gt_center">1983-10-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">12.548870</td>
+<td class="gt_row gt_center">49.43847</td>
+<td class="gt_row gt_center">755</td>
+<td class="gt_row gt_center">TIEFENBACH</td>
+<td class="gt_row gt_center">93725308</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Tiefenbach</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">6.553140</td></tr>
+    <tr><td class="gt_row gt_center">DEST098</td>
+<td class="gt_row gt_center">DEST098</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Unterharz / Friedrichsbrunn</td>
+<td class="gt_row gt_center">2003-06-24</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">11.043384</td>
+<td class="gt_row gt_center">51.66245</td>
+<td class="gt_row gt_center">410</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">4.324972</td></tr>
+    <tr><td class="gt_row gt_center">DEUB005</td>
+<td class="gt_row gt_center">DEUB005</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Waldhof</td>
+<td class="gt_row gt_center">1970-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">10.756733</td>
+<td class="gt_row gt_center">52.80077</td>
+<td class="gt_row gt_center">74</td>
+<td class="gt_row gt_center">ZELLA-MEHLIS</td>
+<td class="gt_row gt_center">33605402</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Lüder</td>
+<td class="gt_row gt_center">yes</td>
+<td class="gt_row gt_center">6.637391</td></tr>
+    <tr><td class="gt_row gt_center">DEHE051</td>
+<td class="gt_row gt_center">DEHE051</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Wasserkuppe</td>
+<td class="gt_row gt_center">2000-07-05</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">9.935862</td>
+<td class="gt_row gt_center">50.49771</td>
+<td class="gt_row gt_center">931</td>
+<td class="gt_row gt_center">WASSERKUPPE</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6631010</td>
+<td class="gt_row gt_center">Gersfeld (Rhön), Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">5.258516</td></tr>
+    <tr><td class="gt_row gt_center">DENI060</td>
+<td class="gt_row gt_center">DENI060</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Wendland</td>
+<td class="gt_row gt_center">1998-04-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">11.167050</td>
+<td class="gt_row gt_center">52.95702</td>
+<td class="gt_row gt_center">16</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">33545407</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Lüchow (Wendland), Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">9.883998</td></tr>
+    <tr><td class="gt_row gt_center">DERP015</td>
+<td class="gt_row gt_center">DERP015</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Westeifel Wascheid</td>
+<td class="gt_row gt_center">1984-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6.378100</td>
+<td class="gt_row gt_center">50.26650</td>
+<td class="gt_row gt_center">680</td>
+<td class="gt_row gt_center">WASCHEID</td>
+<td class="gt_row gt_center">72325006</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Gondenbrett</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">5.270284</td></tr>
+    <tr><td class="gt_row gt_center">DEUB001</td>
+<td class="gt_row gt_center">DEUB001</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Westerland</td>
+<td class="gt_row gt_center">1968-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">8.308208</td>
+<td class="gt_row gt_center">54.92497</td>
+<td class="gt_row gt_center">12</td>
+<td class="gt_row gt_center">WESTERLAND</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">1054168</td>
+<td class="gt_row gt_center">Sylt</td>
+<td class="gt_row gt_center">yes</td>
+<td class="gt_row gt_center">5.123743</td></tr>
+    <tr><td class="gt_row gt_center">DERP016</td>
+<td class="gt_row gt_center">DERP016</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Westerwald-Herdorf</td>
+<td class="gt_row gt_center">1984-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">7.973500</td>
+<td class="gt_row gt_center">50.76675</td>
+<td class="gt_row gt_center">480</td>
+<td class="gt_row gt_center">HERDORF</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">7132050</td>
+<td class="gt_row gt_center">Herdorf, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">7.560889</td></tr>
+    <tr><td class="gt_row gt_center">DERP028</td>
+<td class="gt_row gt_center">DERP028</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Westerwald-Neuhäusel</td>
+<td class="gt_row gt_center">1994-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">7.729900</td>
+<td class="gt_row gt_center">50.42430</td>
+<td class="gt_row gt_center">546</td>
+<td class="gt_row gt_center">NEUSTADT</td>
+<td class="gt_row gt_center">71435004</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Montabaur, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">8.176328</td></tr>
+    <tr><td class="gt_row gt_center">DERP013</td>
+<td class="gt_row gt_center">DERP013</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Westpfalz-Waldmohr</td>
+<td class="gt_row gt_center">1984-01-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">7.293522</td>
+<td class="gt_row gt_center">49.42314</td>
+<td class="gt_row gt_center">455</td>
+<td class="gt_row gt_center">DUNZWEILER</td>
+<td class="gt_row gt_center">73365006</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Dunzweiler</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">7.241496</td></tr>
+    <tr><td class="gt_row gt_center">DEHE024</td>
+<td class="gt_row gt_center">DEHE024</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Witzenhausen/Wald</td>
+<td class="gt_row gt_center">1983-05-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">9.774589</td>
+<td class="gt_row gt_center">51.29176</td>
+<td class="gt_row gt_center">610</td>
+<td class="gt_row gt_center">WITZENHAUSEN/WALD</td>
+<td class="gt_row gt_center">66369200</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Gutsbezirk Kaufunger Wald, gemfr. Gebiet</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">6.347633</td></tr>
+    <tr><td class="gt_row gt_center">DENI051</td>
+<td class="gt_row gt_center">DENI051</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Wurmberg</td>
+<td class="gt_row gt_center">1991-06-06</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">10.612481</td>
+<td class="gt_row gt_center">51.75816</td>
+<td class="gt_row gt_center">939</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">3153003</td>
+<td class="gt_row gt_center">Braunlage, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">5.652281</td></tr>
+    <tr><td class="gt_row gt_center">DEST089</td>
+<td class="gt_row gt_center">DEST089</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Zartau/Waldstation</td>
+<td class="gt_row gt_center">1997-12-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">11.172350</td>
+<td class="gt_row gt_center">52.59317</td>
+<td class="gt_row gt_center">95</td>
+<td class="gt_row gt_center">BITTERFELD</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">6.349582</td></tr>
+    <tr><td class="gt_row gt_center">DEHE050</td>
+<td class="gt_row gt_center">DEHE050</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Zierenberg</td>
+<td class="gt_row gt_center">2000-05-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">9.271233</td>
+<td class="gt_row gt_center">51.36075</td>
+<td class="gt_row gt_center">489</td>
+<td class="gt_row gt_center">ZIERENBERG</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">6633029</td>
+<td class="gt_row gt_center">Zierenberg, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">8.549352</td></tr>
+    <tr><td class="gt_row gt_center">DEUB028</td>
+<td class="gt_row gt_center">DEUB028</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Zingst</td>
+<td class="gt_row gt_center">1991-09-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">unknown</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">12.721938</td>
+<td class="gt_row gt_center">54.43699</td>
+<td class="gt_row gt_center">1</td>
+<td class="gt_row gt_center">ZINGST</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">13057096</td>
+<td class="gt_row gt_center">Zingst</td>
+<td class="gt_row gt_center">yes</td>
+<td class="gt_row gt_center">5.197794</td></tr>
+    <tr><td class="gt_row gt_center">DESN052</td>
+<td class="gt_row gt_center">DESN052</td>
+<td class="gt_row gt_center">DE</td>
+<td class="gt_row gt_center">Germany</td>
+<td class="gt_row gt_center">Zinnwald</td>
+<td class="gt_row gt_center">1978-05-01</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Background</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">rural</td>
+<td class="gt_row gt_center">regional</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">13.751450</td>
+<td class="gt_row gt_center">50.73148</td>
+<td class="gt_row gt_center">877</td>
+<td class="gt_row gt_center">ZINNWALD</td>
+<td class="gt_row gt_center">146285201</td>
+<td class="gt_row gt_center">NA</td>
+<td class="gt_row gt_center">Altenberg, Stadt</td>
+<td class="gt_row gt_center">no</td>
+<td class="gt_row gt_center">6.719809</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p><br>
+Así mismo, cargaremos los límites geográficos de Alemania para examinar el contexto de la distribución espacial de los puntos (ubicaciones) de medición (Figura 3).</p>
+<pre class="r"><code>library(sf)
+library(spacetime) # Contiene los límites espaciales de Alemania en un objeto llamado DE_NUTS1.
+library(tidyverse)
+
+data(air, package = &quot;spacetime&quot;)
+
+alm &lt;- DE_NUTS1 %&gt;% 
+  st_as_sf() %&gt;% 
+  st_transform(crs = &quot;EPSG:32632&quot;)
+
+no2_sf &lt;- no2 %&gt;% 
+  st_as_sf(coords = c(&quot;station_longitude_deg&quot;,&quot;station_latitude_deg&quot;), crs = &quot;OGC:CRS84&quot;) %&gt;% 
+  st_transform(crs = &quot;EPSG:32632&quot;)</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 3. Distribución espacial de estaciones de medición de concentración de NO<sub>2</sub> atmosférico.
+</p>
+<p>Para terminar con esta etapa, crearemos la grilla de inrterpolaciñon a partir de los límites de geográficos del área de estudio (Figura 4).</p>
+<pre class="r"><code>library(stars)
+
+alm_grid &lt;- st_as_stars(.x = st_bbox(obj = alm), dx = 500, dy = 500) %&gt;% 
+  st_crop(y = alm)
+
+options(scipen = 10000)
+ggplot() +
+  geom_stars(data = alm_grid, show.legend = FALSE) +
+  scale_fill_gradientn(colours = c(&quot;gray60&quot;, &quot;gray60&quot;), na.value = NA) +
+  coord_equal() +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 4. Grilla de interpolación de mediciones de concentración de NO<sub>2</sub> atomosférico.
+</p>
+</div>
+<div id="análisis-exploratorio-de-datos-eda" class="section level1">
+<h1>Análisis exploratorio de datos (EDA)</h1>
+<p>Una de las particularidades de los métodos geoestadísticos que lo diferencias de los métodos determinísticos, se basa en que la estructura de los datos cumplan ciertos supuestos relativos a la distribución de los datos, especificamente que estos se ajusten a una distribución normal. En este sentido, se han derivado algunos criterios empíricos basados en el análisis descriptivo de los datos. A continuación, mostramos el bloque de código para el cómputo de estos indicadores (Tabla 2).</p>
+<pre class="r"><code>library(e1071) #  Cómputo de medidas de asimetría y kurtosis.
+
+EDA &lt;- st_drop_geometry(x = no2_sf) %&gt;% 
+  summarise(Min = min(NO2),
+            Media = mean(NO2),
+            Mediana = median(NO2),
+            Max = max(NO2),
+            SD = sd(NO2),
+            CV = SD/Media,
+            Q1 = quantile(x = NO2, probs = 0.25),
+            Q3 = quantile(x = NO2, probs = 0.75),
+            IQR = IQR(x = NO2),
+            Asimetría = skewness(x = NO2),
+            Kurtosis = kurtosis(x = NO2))</code></pre>
+<p>Tabla 2. Análisis exploratorio de las mediciones de NO<sub>2</sub> atmosférico.</p>
+<div id="fbhwcdbbzc" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#fbhwcdbbzc .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: 100%;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#fbhwcdbbzc .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#fbhwcdbbzc .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#fbhwcdbbzc .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#fbhwcdbbzc .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#fbhwcdbbzc .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#fbhwcdbbzc .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#fbhwcdbbzc .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#fbhwcdbbzc .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#fbhwcdbbzc .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#fbhwcdbbzc .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#fbhwcdbbzc .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#fbhwcdbbzc .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#fbhwcdbbzc .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#fbhwcdbbzc .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#fbhwcdbbzc .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#fbhwcdbbzc .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fbhwcdbbzc .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#fbhwcdbbzc .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#fbhwcdbbzc .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fbhwcdbbzc .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#fbhwcdbbzc .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#fbhwcdbbzc .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#fbhwcdbbzc .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fbhwcdbbzc .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#fbhwcdbbzc .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#fbhwcdbbzc .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#fbhwcdbbzc .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#fbhwcdbbzc .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fbhwcdbbzc .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#fbhwcdbbzc .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fbhwcdbbzc .gt_left {
+  text-align: left;
+}
+
+#fbhwcdbbzc .gt_center {
+  text-align: center;
+}
+
+#fbhwcdbbzc .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#fbhwcdbbzc .gt_font_normal {
+  font-weight: normal;
+}
+
+#fbhwcdbbzc .gt_font_bold {
+  font-weight: bold;
+}
+
+#fbhwcdbbzc .gt_font_italic {
+  font-style: italic;
+}
+
+#fbhwcdbbzc .gt_super {
+  font-size: 65%;
+}
+
+#fbhwcdbbzc .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#fbhwcdbbzc .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#fbhwcdbbzc .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#fbhwcdbbzc .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#fbhwcdbbzc .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#fbhwcdbbzc .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Min</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Media</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Mediana</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Max</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">SD</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">CV</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Q1</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Q3</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">IQR</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Asimetría</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Kurtosis</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_center">2.069318</td>
+<td class="gt_row gt_center">8.375891</td>
+<td class="gt_row gt_center">7.188312</td>
+<td class="gt_row gt_center">20.49384</td>
+<td class="gt_row gt_center">3.934122</td>
+<td class="gt_row gt_center">0.469696</td>
+<td class="gt_row gt_center">5.665304</td>
+<td class="gt_row gt_center">9.322527</td>
+<td class="gt_row gt_center">3.657223</td>
+<td class="gt_row gt_center">1.263008</td>
+<td class="gt_row gt_center">1.200327</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p><br>
+En general como reglas empíricas para aceptar la distribución de los datos, se busca que los valores de la media y la mediana sean “iguales”, o al menos tan cercanos que su cociente se aproxime a la unidad; se buca que que la asimetría se ubique en el rango <span class="math inline">\(-0.5 \leq A_{s} \leq 0.5\)</span>, indicativo de ausencia de sesgo en la distribución de los datos y, que la kurtosis se encuentre en el rango <span class="math inline">\(-2.5 \leq A_{s} \leq 3.5\)</span>, asociado a forma mesocurtica (normal) de la curva de densidad de los datos.</p>
+<p>En el contexto de las mediciones de NO<sub>2</sub> se evidencia que la media, la mediana y la asimetría se encuentra por fuera de los rangos mencionados, acusando, en el caso de la asimetría (<span class="math inline">\(A_{s}\)</span>) la existencia de sesgo positivo o de cola derecha para la curva de densidad de probabilidad de esta variable, misma que se puede explorar de forma gráfica (Figura 5).</p>
+<pre class="r"><code>ggplot(data = no2_sf, mapping = aes(x = NO2, y = ..density..)) +
+  geom_histogram(fill = &quot;gray60&quot;) +
+  geom_density(colour = &quot;red&quot;) +
+  labs(x = NULL, y = &quot;Densidad&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 5. Distribución de probabilidad de mediciones de concentración de NO<sub>2</sub> atmosférico.
+</p>
+<p>Si bien, los criterios anteriores sirven para disgnósticar la estructura de los datos, la rigurosidad de los procesos, al menos desde una visión particular, amerita que se apliquen pruebas formales de inferencia estadística para conocer con suficiente grado de confiabilidad si los datos se ajustan o no a una distribución normal. Para el caso este caso, serían buenos referentes los resultados que se obtengan de la ejecución de los test de Shapiro-Wilk (<span class="math inline">\(n \leq 30\)</span>) o el test de Kolmogoriov-Smirnof con corrección de Lilliefors (<span class="math inline">\(n &gt; 30\)</span>), como se muestra a continuación.</p>
+<pre class="r"><code>library(nortest) # Funciones para testear la normalidad de los datos
+
+lillie.test(x = no2_sf$NO2)</code></pre>
+<pre><code>## 
+##  Lilliefors (Kolmogorov-Smirnov) normality test
+## 
+## data:  no2_sf$NO2
+## D = 0.15854, p-value = 0.00008631</code></pre>
+<p>Como el <span class="math inline">\(p-valor\)</span> es menor que el 5% de nivel de significancia (<span class="math inline">\(\alpha = 0.05\)</span>), existe evidencia suficiente para rechazar la hipótesis de normalidad de las observaciones (mediciones) de NO<sub>2</sub> atmosférico con una confiabilidad del 95%.</p>
+<p>Lo anterior, es una muestra concreta que la estructura de los datos no cumple con los requisitos para continuar con el modelado, mediante kriging, de los datos. Como una ruta para solventar esta falta de ajuste en los datos, una alternativa viable podría ser la transformación de los datos, por ejemplo a escala logarítmica y explorar los datos nuevamente (Tabla 3).</p>
+<pre class="r"><code>EDA_trans &lt;- st_drop_geometry(x = no2_sf) %&gt;% 
+  summarise(Min = min(log(NO2)),
+            Media = mean(log(NO2)),
+            Mediana = median(log(NO2)),
+            Max = max(log(NO2)),
+            SD = sd(log(NO2)),
+            CV = SD/Media,
+            Q1 = quantile(x = log(NO2), probs = 0.25),
+            Q3 = quantile(x = log(NO2), probs = 0.75),
+            IQR = IQR(x = log(NO2)),
+            Asimetría = skewness(x = log(NO2)),
+            Kurtosis = kurtosis(x = log(NO2)))</code></pre>
+<p>Tabla 3. Análisis exploratorio de las mediciones de NO<sub>2</sub> atmosférico con transformación logarítmica.</p>
+<pre class="r"><code>gt(data = EDA_trans) %&gt;% 
+  tab_options( table.width = pct(x = 100), table.align = &quot;center&quot;, column_labels.font.weight = &quot;bold&quot;) %&gt;%
+  cols_align(align = &quot;center&quot;)</code></pre>
+<div id="snaqsrlwqb" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#snaqsrlwqb .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: 100%;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#snaqsrlwqb .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#snaqsrlwqb .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#snaqsrlwqb .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#snaqsrlwqb .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#snaqsrlwqb .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#snaqsrlwqb .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#snaqsrlwqb .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: bold;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#snaqsrlwqb .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#snaqsrlwqb .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#snaqsrlwqb .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#snaqsrlwqb .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#snaqsrlwqb .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#snaqsrlwqb .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#snaqsrlwqb .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#snaqsrlwqb .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#snaqsrlwqb .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#snaqsrlwqb .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#snaqsrlwqb .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#snaqsrlwqb .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#snaqsrlwqb .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#snaqsrlwqb .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#snaqsrlwqb .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#snaqsrlwqb .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#snaqsrlwqb .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#snaqsrlwqb .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#snaqsrlwqb .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#snaqsrlwqb .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#snaqsrlwqb .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#snaqsrlwqb .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#snaqsrlwqb .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#snaqsrlwqb .gt_left {
+  text-align: left;
+}
+
+#snaqsrlwqb .gt_center {
+  text-align: center;
+}
+
+#snaqsrlwqb .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#snaqsrlwqb .gt_font_normal {
+  font-weight: normal;
+}
+
+#snaqsrlwqb .gt_font_bold {
+  font-weight: bold;
+}
+
+#snaqsrlwqb .gt_font_italic {
+  font-style: italic;
+}
+
+#snaqsrlwqb .gt_super {
+  font-size: 65%;
+}
+
+#snaqsrlwqb .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#snaqsrlwqb .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#snaqsrlwqb .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#snaqsrlwqb .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#snaqsrlwqb .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#snaqsrlwqb .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Min</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Media</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Mediana</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Max</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">SD</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">CV</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Q1</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Q3</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">IQR</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Asimetría</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Kurtosis</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_center">0.727219</td>
+<td class="gt_row gt_center">2.028549</td>
+<td class="gt_row gt_center">1.972429</td>
+<td class="gt_row gt_center">3.020125</td>
+<td class="gt_row gt_center">0.4392338</td>
+<td class="gt_row gt_center">0.2165261</td>
+<td class="gt_row gt_center">1.734353</td>
+<td class="gt_row gt_center">2.232416</td>
+<td class="gt_row gt_center">0.4980634</td>
+<td class="gt_row gt_center">0.1092672</td>
+<td class="gt_row gt_center">0.1628435</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p><br>
+Nótese que luego de la transformación, los datos se sitúan dentro de los rangos empírico señalados, con el consecuente efecto positivo sobre la simetría de la curva distribución de probabilidad (Figura 6).</p>
+<pre class="r"><code>ggplot(data = no2_sf, mapping = aes(x = log(NO2), y = ..density..)) +
+  geom_histogram(fill = &quot;gray60&quot;) +
+  geom_density(colour = &quot;red&quot;) +
+  labs(x = NULL, y = &quot;Log(Densidad)&quot;) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/unnamed-chunk-13-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 6. Distribución de probabilidad de mediciones de concentración de NO<sub>2</sub> atmosférico con transformación logarítmica.
+</p>
+<p>Formalmente, la ejecución del test de Kolmogorov-Smirnov con corrección de Lilliefors es cocluyente en el cumplimiento del requisito de normalidad de los datos (<span class="math inline">\(D = 0.075\)</span>, <span class="math inline">\(p-valor = 0.38 (&gt; 0.05)\)</span>), como se muestra a continuación.</p>
+<pre class="r"><code>lillie.test(x = log(no2_sf$NO2))</code></pre>
+<pre><code>## 
+##  Lilliefors (Kolmogorov-Smirnov) normality test
+## 
+## data:  log(no2_sf$NO2)
+## D = 0.075233, p-value = 0.3779</code></pre>
+</div>
+<div id="análisis-variográfico" class="section level1">
+<h1>Análisis variográfico</h1>
+<p>Verificados los requisitos sobre la estructura de las observaciones luego de su transformación, el siguiente paso dentro del análisis consiste en determinar el variograma experimental de los datos y sobre este ajustar un modelo de variograma teórico. Aquí, nos apoyaremos de las funciones <code>variogram()</code> del paquete <strong>gstat</strong> y <code>autofitvariogram()</code> <strong>automap</strong>.</p>
+<p>Iniciaremos esta parte del análisis con la construcción del variograma experimental de las mediciones de NO<sub>2</sub> (Figura 7) de acuerdo a las siguientes líneas de código.</p>
+<pre class="r"><code>vgm &lt;- variogram(object = log(NO2) ~ 1, locations = no2_sf)
+
+ggplot(data = vgm, mapping = aes(x = dist, y = gamma)) +
+  geom_point(colour = &quot;blue&quot;) +
+  labs(x = &quot;Distancia&quot;, y = expression(gamma(h))) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/unnamed-chunk-15-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 7. Variograma experimental para mediciones de concentración de NO<sub>2</sub> atmosférico con transformación logarítmica.
+</p>
+<p>Nótese que en adelante el modelado de los datos lo realizaremos con las observaciones en escala logarítmica.</p>
+<p>Del patrón variográfico mostrado en la Figura 7, se debe ajustar cualquiera de los modelos teóricos ilustrados en la Figura 2, teniendo en cuenta las características expuestas en la Figura 1. De estos los modelos Esférico o circular, pudieran ser elecciones adecuadas. Sin embargo, exploremos el ajuste automatizado que realiza la función <code>autofitvariogram()</code> (Figura 8).</p>
+<pre class="r"><code>library(automap)
+
+vgm_fit &lt;- autofitVariogram(formula = log(NO2) ~ 1, input_data = as(object = no2_sf, Class = &quot;Spatial&quot;))
+
+vgmline &lt;- variogramLine(object = vgm_fit$var_model, maxdist = max(vgm$dist)) # Extrae la curva ajustada del modelo para fines de ploteo
+
+ggplot(data = vgm, mapping = aes(x = dist, y = gamma)) +
+  geom_point(colour = &quot;blue&quot;) +
+  geom_line(data = vgmline, colour = &quot;red&quot;) +
+  labs(x = &quot;Distancia&quot;, y = expression(gamma(h))) +
+  theme_bw()</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/unnamed-chunk-16-1.png" width="672" style="display: block; margin: auto;" />
+<p align="center">
+Figura 8. Variograma teórico para mediciones de concentración de NO<sub>2</sub> atmosférico con transformación logarítmica.
+</p>
+<p>Dado que la función <code>autofitvariogram()</code> no trabaja con objetos <em>sf</em> en su argumento <em>input_data</em>, se coerciona a que <em>no2_sf</em> sea transformado a un objeto <em>sp</em> (Spatial) mediante el uso de la función <code>as()</code> del base de R.</p>
+<p>Finalmente, se realiza la interpolación mediante kriging ordinario (Figura 9), de acuerdo a la siguiente línea de código.</p>
+<pre class="r"><code>ok = krige(formula = log(NO2)~1, 
+           locations = no2_sf, 
+           newdata = alm_grid, 
+           model = vgm_fit$var_model)</code></pre>
+<pre><code>## [using ordinary kriging]</code></pre>
+<pre class="r"><code>ggplot() +
+  geom_stars(data = exp(ok), mapping = aes(x = x, y = y, fill = var1.pred)) +
+  geom_sf(data = alm, fill = NA)  +
+  scale_fill_distiller(name = expression(NO[2]), palette = &quot;Spectral&quot;, na.value = NA) +
+  labs(x = &quot;&quot;, y = &quot;&quot;) +
+  theme_bw()</code></pre>
+<pre><code>## Warning: Removed 789388 rows containing missing values (geom_raster).</code></pre>
+<img src="{{< blogdown/postref >}}index.es_files/figure-html/unnamed-chunk-17-1.png" width="672" />
+<p align="center">
+Figura 9. Mediciones de concentración de NO<sub>2</sub> atmosférico interpoladas para la superficie de Alemania.
+</p>
+<p>Note que se transformaron las observaciones a su escala original en el <code>geom_stars()</code>.</p>
+</div>
